@@ -1409,10 +1409,11 @@
     async function savePhotoCopyToDeviceMemory(base64Data, asciiFileName, silentAuto = true) {
       try {
         const blob = dataUrlToBlob(base64Data);
+        const file = new File([blob], asciiFileName, { type: 'image/jpeg' });
         const isAndroidWebView = /wv|Android.*Version\/[\d.]+/i.test(navigator.userAgent);
 
-        // 1. 支援 File System Access API 的瀏覽器直接寫入手機儲存空間
-        if (!silentAuto && window.showSaveFilePicker) {
+        // 1. 優先使用 File System Access API 直接寫入手機儲存空間
+        if (window.showSaveFilePicker) {
           try {
             const handle = await window.showSaveFilePicker({
               suggestedName: asciiFileName,
@@ -1421,26 +1422,38 @@
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
-            showToast(`已將副本存入裝置：${asciiFileName}`, 'success');
+            showToast(`已寫入手機記憶體：${asciiFileName}`, 'success');
             return true;
           } catch (e) {
             if (e.name === 'AbortError') return false;
           }
         }
 
-        // 2. Android WebView 環境：手動點擊時呼叫原生系統分享面板存入 Google 相簿 / 手機圖庫
-        if (!silentAuto && navigator.canShare) {
-          const file = new File([blob], asciiFileName, { type: 'image/jpeg' });
-          if (navigator.canShare({ files: [file] })) {
+        // 2. Android APK (WebView) 環境：拍照後自動喚起 Android 原生檔案介面，可直接點選「儲存至 Google 相簿 / 檔案」寫入手機記憶體，絕不閃退
+        if (isAndroidWebView && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
             await navigator.share({
               files: [file],
               title: asciiFileName
             });
+            showToast(`已透過系統介面保存副本：${asciiFileName}`, 'success');
             return true;
+          } catch (shareErr) {
+            // 若使用者按返回取消分享，不影響 App 內已存的照片
+            return false;
           }
         }
 
-        // 3. 一般手機瀏覽器 / 非舊版 WebView：使用 Blob ObjectURL 寫入 Download 資料夾（絕不使用會閃退的 data: URI）
+        // 3. 手動點擊「存相簿」時也支援喚起原生分享存圖
+        if (!silentAuto && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: asciiFileName
+          });
+          return true;
+        }
+
+        // 4. 一般手機瀏覽器 (Chrome / Safari)：使用安全 Blob URL 直接寫入 Download 與系統相簿
         if (!isAndroidWebView) {
           const blobUrl = URL.createObjectURL(blob);
           const a = document.createElement('a');
