@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="XMOTO巡檢" />
-  <title>XMOTO 設備保修巡檢系統 (89項) - 防閃退內建相機版</title>
+  <title>XMOTO 設備保修巡檢系統 (89項) - 分權資料庫版</title>
 
   <!-- 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -140,7 +140,7 @@
             <span class="text-slate-200 flex items-center gap-1.5">
               <span>狀態：<strong id="stat-ok-summary" class="text-emerald-300">89 / 89 正常</strong></span>
               <span id="autosave-badge" class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 inline-flex items-center gap-0.5">
-                <i class="ph-fill ph-shield-check text-xs"></i> 草稿已自動本機保護
+                <i class="ph-fill ph-shield-check text-xs"></i> 草稿已自動本機保護 (IndexedDB)
               </span>
             </span>
             <span class="text-sky-200 font-semibold shrink-0">
@@ -305,7 +305,7 @@
               </a>
             </div>
 
-            <!-- 4. 經銷編號 (自動帶入 ID_CODE) + 點檢日期 -->
+            <!-- 4. 經銷編號 (自動帶入 ID_CODE) + 點檢日期 + 點檢技師姓名 -->
             <div class="grid grid-cols-2 gap-2.5">
               <div>
                 <label class="block text-[11px] font-semibold text-slate-600 mb-1">經銷編號 (ID CODE)</label>
@@ -332,7 +332,71 @@
               </div>
             </div>
 
-            <!-- 5. 即時雲端分權資料庫目標路徑預覽條 -->
+            <!-- 5. 【新增】現場藥劑與耗材庫存快速勾選卡片 (位於點檢技師姓名正下方，並顯示於 PDF 第一頁顯眼位置) -->
+            <div id="liquid-stock-card" class="bg-gradient-to-br from-sky-50/90 via-blue-50/70 to-indigo-50/60 border-2 border-[#2C5282]/30 rounded-2xl p-3 space-y-3 shadow-xs">
+              <div class="flex items-center justify-between border-b border-[#2C5282]/15 pb-1.5">
+                <span class="text-xs font-extrabold text-[#1E3A5F] flex items-center gap-1.5">
+                  <i class="ph-fill ph-flask text-base text-[#2C5282]"></i>
+                  現場藥劑原液量與耗材庫存勾選
+                </span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1E3A5F] text-white">
+                  顯示於 PDF 報告首頁
+                </span>
+              </div>
+
+              <!-- (1) 現場原液量：全滿、8分、6分、4分、2分 -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+                    現場原液量（洗劑原液桶）
+                  </label>
+                  <span id="badge-detergent-level" class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200 text-slate-600">請點選液位</span>
+                </div>
+                <div class="grid grid-cols-5 gap-1.5" id="group-detergent-level">
+                  <!-- 由 JS 動態生成 5 個大按鈕 -->
+                </div>
+              </div>
+
+              <!-- (2) 現場水蠟原液量：全滿、8分、6分、4分、2分 -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+                    現場水蠟原液量（水蠟原液桶）
+                  </label>
+                  <span id="badge-wax-level" class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200 text-slate-600">請點選液位</span>
+                </div>
+                <div class="grid grid-cols-5 gap-1.5" id="group-wax-level">
+                  <!-- 由 JS 動態生成 5 個大按鈕 -->
+                </div>
+              </div>
+
+              <!-- (3) 洗劑庫存 & (4) 水蠟庫存：1、2、3 -->
+              <div class="grid grid-cols-2 gap-2.5 pt-0.5">
+                <div class="bg-white/85 rounded-xl p-2 border border-slate-200/90">
+                  <div class="flex items-center justify-between mb-1.5">
+                    <label class="text-[11px] font-bold text-slate-800">洗劑庫存</label>
+                    <span id="badge-detergent-stock" class="text-[10px] font-bold text-slate-500">未選</span>
+                  </div>
+                  <div class="grid grid-cols-3 gap-1.5" id="group-detergent-stock">
+                    <!-- 由 JS 動態生成 1, 2, 3 按鈕 -->
+                  </div>
+                </div>
+
+                <div class="bg-white/85 rounded-xl p-2 border border-slate-200/90">
+                  <div class="flex items-center justify-between mb-1.5">
+                    <label class="text-[11px] font-bold text-slate-800">水蠟庫存</label>
+                    <span id="badge-wax-stock" class="text-[10px] font-bold text-slate-500">未選</span>
+                  </div>
+                  <div class="grid grid-cols-3 gap-1.5" id="group-wax-stock">
+                    <!-- 由 JS 動態生成 1, 2, 3 按鈕 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6. 即時雲端分權資料庫目標路徑預覽條 -->
             <div class="bg-slate-900 text-slate-200 rounded-xl px-3 py-2 text-[11px] font-mono flex items-center gap-2 overflow-x-auto no-scrollbar">
               <i class="ph-fill ph-folder-notch-open text-amber-400 text-base shrink-0"></i>
               <span class="text-slate-400 shrink-0">歸檔路徑:</span>
@@ -407,9 +471,26 @@
           />
         </div>
 
+        <!-- 【新增】手機相簿自動建立副本 & 浮水印控制列 -->
+        <div class="bg-emerald-50/80 border border-emerald-200 rounded-xl p-2.5 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+              <i class="ph-bold ph-device-mobile-camera text-lg"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="text-xs font-bold text-emerald-950 truncate">拍照同步儲存副本至手機相簿</div>
+              <div class="text-[10px] text-emerald-700 truncate">自動壓印門市與時間浮水印並下載至相簿</div>
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer shrink-0">
+            <input type="checkbox" id="toggle-auto-save-album" checked onchange="toggleAutoSaveAlbum(this.checked)" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+          </label>
+        </div>
+
         <!-- 步驟 3：兩大防閃退觸控拍照/選圖按鈕 -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-          <!-- 開啟 App 內建即時相機 (解決 Android APK 呼叫外部相機閃退) -->
+          <!-- 開啟 App 內建即時相機 -->
           <button
             type="button"
             onclick="openInAppCameraFromSubpage()"
@@ -419,7 +500,7 @@
             <span>開啟 App 內建相機拍攝（防閃退）</span>
           </button>
 
-          <!-- 從相簿選擇照片 / 系統相機備援 (使用 createObjectURL 串流降採樣防爆記憶體) -->
+          <!-- 從相簿選擇照片 -->
           <label class="btn-press cursor-pointer py-3.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1E3A5F] border border-slate-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2">
             <i class="ph-bold ph-images text-xl text-[#2C5282]"></i>
             <span>從相簿選擇照片</span>
@@ -469,9 +550,12 @@
     <!-- 頂部相機控制列 -->
     <div class="px-4 py-3 bg-gradient-to-b from-black/90 to-transparent flex items-center justify-between gap-2 z-10">
       <div class="min-w-0">
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 flex-wrap">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span class="text-xs font-bold text-sky-300">App 內建防閃退相機</span>
+          <span id="cam-modal-album-pill" class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/25 text-emerald-300 border border-emerald-400/40">
+            相簿副本: 開啟
+          </span>
         </div>
         <div id="cam-modal-target-label" class="text-xs sm:text-sm font-bold text-white truncate mt-0.5">
           #00 門市外觀與機台總覽
@@ -479,17 +563,14 @@
       </div>
 
       <div class="flex items-center gap-2 shrink-0">
-        <!-- 補光燈切換 (若裝置支援 torch) -->
         <button type="button" id="btn-cam-torch" onclick="toggleCameraTorch()" class="hidden w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white" title="補光燈">
           <i id="icon-cam-torch" class="ph-bold ph-flashlight text-xl"></i>
         </button>
 
-        <!-- 前後鏡頭切換 -->
         <button type="button" onclick="switchCameraFacingMode()" class="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white" title="切換鏡頭">
           <i class="ph-bold ph-camera-rotate text-xl"></i>
         </button>
 
-        <!-- 關閉相機 -->
         <button type="button" onclick="closeInAppCamera()" class="px-3 py-2 rounded-full bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1">
           <i class="ph-bold ph-x text-base"></i>
           <span>完成關閉</span>
@@ -501,15 +582,12 @@
     <div class="relative flex-1 flex items-center justify-center overflow-hidden bg-black">
       <video id="camera-video-stream" autoplay playsinline muted class="w-full h-full object-cover"></video>
 
-      <!-- 工業對焦框線輔助 -->
       <div class="pointer-events-none absolute inset-6 border border-white/25 rounded-2xl flex items-center justify-center">
         <div class="w-12 h-12 border-2 border-sky-400/60 rounded-lg"></div>
       </div>
 
-      <!-- 快門閃光特效層 -->
       <div id="camera-shutter-flash" class="pointer-events-none absolute inset-0 bg-white opacity-0"></div>
 
-      <!-- 若無法開啟相機權限的友善備援提示 -->
       <div id="camera-error-fallback" class="hidden absolute inset-0 bg-slate-900/95 p-6 flex flex-col items-center justify-center text-center space-y-4">
         <div class="w-14 h-14 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center">
           <i class="ph-bold ph-camera-slash text-3xl"></i>
@@ -530,7 +608,6 @@
 
     <!-- 底部快門與剛拍照片縮圖預覽區 -->
     <div class="px-5 py-5 bg-gradient-to-t from-black via-black/95 to-transparent flex items-center justify-between gap-4 z-10">
-      <!-- 左下角：本項已拍照片縮圖與張數 -->
       <div class="w-16 flex flex-col items-center">
         <div id="cam-last-thumb-box" class="w-12 h-12 rounded-xl bg-white/10 border border-white/25 overflow-hidden flex items-center justify-center">
           <i class="ph-bold ph-image text-white/40 text-xl"></i>
@@ -538,7 +615,6 @@
         <span id="cam-session-count" class="text-[10px] text-slate-300 mt-1 font-semibold">本項 0 張</span>
       </div>
 
-      <!-- 中央：大型快門拍照按鈕 -->
       <button
         type="button"
         id="btn-shutter-capture"
@@ -551,7 +627,6 @@
         </div>
       </button>
 
-      <!-- 右下角：確認返回 -->
       <div class="w-16 flex flex-col items-center">
         <button type="button" onclick="closeInAppCamera()" class="w-12 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow">
           <i class="ph-bold ph-check text-2xl"></i>
@@ -596,9 +671,27 @@
           class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2C5282]"
         />
         <p class="text-[11px] text-slate-500 leading-relaxed">
-          • 填入後，點擊送出將直接把完整 89 項紀錄表與壓縮照片傳送至 <strong>經銷資料庫 / 分權資料庫 / [北/中/南/東區] / [經銷名稱] / [年月日]</strong>。<br/>
+          • 填入後，點擊送出將直接把完整 89 項紀錄表、藥劑庫存勾選與壓縮照片傳送至 <strong>經銷資料庫 / 分權資料庫 / [北/中/南/東區] / [經銷名稱] / [年月日]</strong>。<br/>
           • 若留空則維持「離線展示模擬模式」，資料仍會完整保存在本機 IndexedDB 與本地紀錄中。
         </p>
+      </div>
+
+      <!-- 設定視窗內的相簿自動備份與浮水印偏好 -->
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <div class="text-xs font-bold text-slate-800">拍照時自動在手機相簿建立副本</div>
+            <div class="text-[10px] text-slate-500">每次按下快門自動觸發本機下載存入相簿/Download</div>
+          </div>
+          <input type="checkbox" id="settings-auto-album" checked onchange="toggleAutoSaveAlbum(this.checked)" class="w-4 h-4 accent-[#1E3A5F]" />
+        </div>
+        <div class="flex items-center justify-between gap-2 border-t border-slate-200 pt-2">
+          <div>
+            <div class="text-xs font-bold text-slate-800">照片右下角自動壓印浮水印</div>
+            <div class="text-[10px] text-slate-500">標註 XMOTO、經銷編號、門市名稱與拍攝時間</div>
+          </div>
+          <input type="checkbox" id="settings-watermark" checked onchange="togglePhotoWatermark(this.checked)" class="w-4 h-4 accent-[#1E3A5F]" />
+        </div>
       </div>
 
       <div id="gas-test-result" class="hidden text-xs p-2.5 rounded-xl border"></div>
@@ -624,7 +717,7 @@
       </div>
       <h3 class="text-base font-bold text-slate-900">確定要清空重填並重設為「正常」嗎？</h3>
       <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
-        這將會把全部 89 項恢復為預設「正常」狀態，並清除本機暫存的異常備註與照片，開始一份全新的點檢單。
+        這將會把全部 89 項恢復為預設「正常」狀態，並清除現場原液量／庫存勾選、異常備註與照片，開始一份全新的點檢單。
       </p>
       <div class="grid grid-cols-2 gap-2.5 mt-5">
         <button type="button" onclick="closeResetModal()" class="py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200">取消</button>
@@ -697,10 +790,10 @@
     </div>
   </div>
 
-  <!-- JavaScript 核心邏輯、IndexedDB 照片保護引擎、App 內建相機與完整 89 項資料庫 -->
+  <!-- JavaScript 核心邏輯、IndexedDB 照片保護引擎、藥劑庫存勾選、App 內建相機與完整 89 項資料庫 -->
   <script>
     // =========================================================================
-    // 0A. PWA 動態 Manifest 與 Service Worker 註冊
+    // 0A. PWA 動態 Manifest 註冊
     // =========================================================================
     (function initPwaSupport() {
       try {
@@ -736,7 +829,7 @@
     })();
 
     // =========================================================================
-    // 0B. IndexedDB 大容量照片與草稿保護庫 (突破 localStorage 5MB 限制，永不遺失照片)
+    // 0B. IndexedDB 大容量照片與草稿保護庫
     // =========================================================================
     const IDB_NAME = 'xmoto_inspection_db_v1';
     const IDB_STORE = 'kv_store';
@@ -788,7 +881,7 @@
     }
 
     // =========================================================================
-    // 0C. 全台 53 家經銷門市 ID_CODE 對照總表 (北、中、南、東四區域，已移除 CN01 南投草屯店)
+    // 0C. 全台 53 家經銷門市 ID_CODE 對照總表 (北、中、南、東四區域，已移除南投草屯店)
     // =========================================================================
     const REGION_FOLDER_MAP = {
       '北部地區': '北區',
@@ -827,7 +920,7 @@
       { region: '北部地區', code: 'NC04', city: '新竹縣', name: '竹東東寧店', address: '新竹縣竹東鎮東寧路三段 188 號' },
       { region: '北部地區', code: 'NC05', city: '新竹縣', name: '新豐新興店', address: '新竹縣新豐鄉新興路 335 號' },
 
-      // 中部地區 (9 家，已移除南投縣 CN01 南投草屯店)
+      // 中部地區 (9 家，已移除南投草屯店)
       { region: '中部地區', code: 'CM01', city: '苗栗縣', name: '苗栗龍山店（竹南龍山店）', address: '苗栗縣竹南鎮龍山路三段 250 號' },
       { region: '中部地區', code: 'CM02', city: '苗栗縣', name: '頭份信東店', address: '苗栗縣頭份市信東路 255 號' },
       { region: '中部地區', code: 'CT01', city: '台中市', name: '台中北屯店（北屯太原店）', address: '台中市北屯區太原路三段 842-2 號' },
@@ -1026,10 +1119,15 @@
     ];
 
     const QUICK_TAGS = ['漏水滲液', '異音震動', '壓力不足', '管線鬆脫', '感知異常', '需補貨'];
-    const STORAGE_KEY = 'xmoto_89_draft_meta_v5';
-    const IDB_DRAFT_KEY = 'xmoto_89_full_draft_v5';
-    const IDB_HISTORY_KEY = 'xmoto_89_submitted_history_v5';
+    const LEVEL_OPTIONS = ['全滿', '8分', '6分', '4分', '2分'];
+    const STOCK_OPTIONS = ['1', '2', '3'];
+
+    const STORAGE_KEY = 'xmoto_89_draft_meta_v6';
+    const IDB_DRAFT_KEY = 'xmoto_89_full_draft_v6';
+    const IDB_HISTORY_KEY = 'xmoto_89_submitted_history_v6';
     const GAS_URL_KEY = 'xmoto_gas_webapp_url_v1';
+    const PREF_ALBUM_KEY = 'xmoto_pref_auto_album_v1';
+    const PREF_WATERMARK_KEY = 'xmoto_pref_watermark_v1';
 
     function createDefaultNormalRecords() {
       const recs = {};
@@ -1051,11 +1149,17 @@
       searchQuery: '',
       filter: 'all',
       expandedSystems: { 'sys-1': true },
+      autoSaveAlbum: true,
+      enableWatermark: true,
       meta: {
         region: '南部地區',
         dealerCode: 'SK01',
         date: '2026-11-18',
-        inspector: ''
+        inspector: '',
+        detergentLevel: '', // 現場原液量：全滿 / 8分 / 6分 / 4分 / 2分
+        waxLevel: '',       // 現場水蠟原液量：全滿 / 8分 / 6分 / 4分 / 2分
+        detergentStock: '', // 洗劑庫存：1 / 2 / 3
+        waxStock: ''        // 水蠟庫存：1 / 2 / 3
       },
       records: createDefaultNormalRecords(),
       photos: []
@@ -1065,13 +1169,16 @@
     let gasWebAppUrl = '';
 
     // =========================================================================
-    // 2. 雙層即時自動持久化 (localStorage + IndexedDB，防止系統回收記憶體後遺失)
+    // 2. 雙層即時自動持久化 (localStorage + IndexedDB)
     // =========================================================================
     async function loadAllData() {
       try {
         gasWebAppUrl = localStorage.getItem(GAS_URL_KEY) || '';
+        const savedAlbumPref = localStorage.getItem(PREF_ALBUM_KEY);
+        const savedWatermarkPref = localStorage.getItem(PREF_WATERMARK_KEY);
+        if (savedAlbumPref !== null) appState.autoSaveAlbum = savedAlbumPref === 'true';
+        if (savedWatermarkPref !== null) appState.enableWatermark = savedWatermarkPref === 'true';
 
-        // 優先從大容量 IndexedDB 還原完整草稿（含所有已拍壓縮照片）
         const idbDraft = await idbGet(IDB_DRAFT_KEY);
         const lsDraftRaw = localStorage.getItem(STORAGE_KEY);
         const sourceDraft = idbDraft || (lsDraftRaw ? JSON.parse(lsDraftRaw) : null);
@@ -1083,6 +1190,8 @@
           appState = {
             ...appState,
             ...sourceDraft,
+            autoSaveAlbum: savedAlbumPref !== null ? (savedAlbumPref === 'true') : (sourceDraft.autoSaveAlbum ?? true),
+            enableWatermark: savedWatermarkPref !== null ? (savedWatermarkPref === 'true') : (sourceDraft.enableWatermark ?? true),
             meta: { ...appState.meta, ...(sourceDraft.meta || {}) },
             records: { ...createDefaultNormalRecords(), ...(sourceDraft.records || {}) },
             photos: sourceDraft.photos || []
@@ -1098,6 +1207,8 @@
       }
 
       syncMetaToDOM();
+      syncAlbumPrefUI();
+      renderLiquidAndStockControls();
       updateConnectionBadge();
       updateRevisionBannerUI();
       updateHistoryBadge();
@@ -1108,35 +1219,147 @@
       }
     }
 
-    function persistDraft() {
-      // 1. 寫入大容量 IndexedDB（含完整照片）
-      idbSet(IDB_DRAFT_KEY, appState);
+    function syncAlbumPrefUI() {
+      const subToggle = document.getElementById('toggle-auto-save-album');
+      const setAlbum = document.getElementById('settings-auto-album');
+      const setWm = document.getElementById('settings-watermark');
+      const camPill = document.getElementById('cam-modal-album-pill');
 
-      // 2. 同步備份純文字表單狀態至 localStorage（雙重保險）
-      try {
-        const textOnlyState = { ...appState, photos: [] };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(textOnlyState));
-      } catch (e) {}
-
-      // 閃爍「草稿已自動本機保護」提示
-      const badge = document.getElementById('autosave-badge');
-      if (badge) {
-        badge.classList.add('bg-emerald-400/40');
-        setTimeout(() => badge.classList.remove('bg-emerald-400/40'), 400);
+      if (subToggle) subToggle.checked = appState.autoSaveAlbum;
+      if (setAlbum) setAlbum.checked = appState.autoSaveAlbum;
+      if (setWm) setWm.checked = appState.enableWatermark;
+      if (camPill) {
+        camPill.textContent = appState.autoSaveAlbum ? '相簿副本: 開啟' : '相簿副本: 關閉';
+        camPill.className = appState.autoSaveAlbum
+          ? 'text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/25 text-emerald-300 border border-emerald-400/40'
+          : 'text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-700 text-slate-300 border border-slate-500/40';
       }
     }
 
-    function persistHistory() {
-      idbSet(IDB_HISTORY_KEY, submittedHistory);
-      updateHistoryBadge();
+    function toggleAutoSaveAlbum(enabled) {
+      appState.autoSaveAlbum = Boolean(enabled);
+      localStorage.setItem(PREF_ALBUM_KEY, String(appState.autoSaveAlbum));
+      syncAlbumPrefUI();
+      persistDraft();
+      showToast(appState.autoSaveAlbum ? '已開啟：拍照自動建立手機相簿副本' : '已關閉自動下載相簿副本', 'info');
     }
 
-    // 頁面切換背景或即將被回收前強制儲存
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        persistDraft();
+    function togglePhotoWatermark(enabled) {
+      appState.enableWatermark = Boolean(enabled);
+      localStorage.setItem(PREF_WATERMARK_KEY, String(appState.enableWatermark));
+      syncAlbumPrefUI();
+      persistDraft();
+    }
+
+    function renderLiquidAndStockControls() {
+      const { detergentLevel, waxLevel, detergentStock, waxStock } = appState.meta;
+
+      // 1. 現場原液量 (全滿、8分、6分、4分、2分)
+      const detLevelContainer = document.getElementById('group-detergent-level');
+      const detLevelBadge = document.getElementById('badge-detergent-level');
+      if (detLevelContainer) {
+        detLevelContainer.innerHTML = LEVEL_OPTIONS.map(opt => {
+          const active = detergentLevel === opt;
+          const isLow = (opt === '4分' || opt === '2分');
+          let btnClass = 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50';
+          if (active) {
+            btnClass = isLow
+              ? 'bg-rose-600 text-white border-rose-600 shadow-sm ring-2 ring-rose-300'
+              : 'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-sm ring-2 ring-sky-300';
+          }
+          return `
+            <button type="button" onclick="setLiquidOrStock('detergentLevel', '${opt}')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-0.5 ${btnClass}">
+              ${active ? '<i class="ph-bold ph-check text-xs"></i>' : ''}
+              <span>${opt}</span>
+            </button>
+          `;
+        }).join('');
+
+        if (detergentLevel) {
+          const isLow = (detergentLevel === '4分' || detergentLevel === '2分');
+          detLevelBadge.className = isLow
+            ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200'
+            : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200';
+          detLevelBadge.textContent = isLow ? `⚠️ ${detergentLevel} (偏低)` : `✓ 已選：${detergentLevel}`;
+        } else {
+          detLevelBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600';
+          detLevelBadge.textContent = '請點選液位';
+        }
       }
-    });
+
+      // 2. 現場水蠟原液量 (全滿、8分、6分、4分、2分)
+      const waxLevelContainer = document.getElementById('group-wax-level');
+      const waxLevelBadge = document.getElementById('badge-wax-level');
+      if (waxLevelContainer) {
+        waxLevelContainer.innerHTML = LEVEL_OPTIONS.map(opt => {
+          const active = waxLevel === opt;
+          const isLow = (opt === '4分' || opt === '2分');
+          let btnClass = 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50';
+          if (active) {
+            btnClass = isLow
+              ? 'bg-rose-600 text-white border-rose-600 shadow-sm ring-2 ring-rose-300'
+              : 'bg-indigo-700 text-white border-indigo-700 shadow-sm ring-2 ring-indigo-300';
+          }
+          return `
+            <button type="button" onclick="setLiquidOrStock('waxLevel', '${opt}')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-0.5 ${btnClass}">
+              ${active ? '<i class="ph-bold ph-check text-xs"></i>' : ''}
+              <span>${opt}</span>
+            </button>
+          `;
+        }).join('');
+
+        if (waxLevel) {
+          const isLow = (waxLevel === '4分' || waxLevel === '2分');
+          waxLevelBadge.className = isLow
+            ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200'
+            : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200';
+          waxLevelBadge.textContent = isLow ? `⚠️ ${waxLevel} (偏低)` : `✓ 已選：${waxLevel}`;
+        } else {
+          waxLevelBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600';
+          waxLevelBadge.textContent = '請點選液位';
+        }
+      }
+
+      // 3. 洗劑庫存 (1, 2, 3)
+      const detStockContainer = document.getElementById('group-detergent-stock');
+      const detStockBadge = document.getElementById('badge-detergent-stock');
+      if (detStockContainer) {
+        detStockContainer.innerHTML = STOCK_OPTIONS.map(num => {
+          const active = String(detergentStock) === num;
+          const btnClass = active
+            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-200'
+            : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100';
+          return `
+            <button type="button" onclick="setLiquidOrStock('detergentStock', '${num}')" class="btn-press py-2 px-1 rounded-lg text-xs font-extrabold border transition flex items-center justify-center gap-0.5 ${btnClass}">
+              ${active ? '<i class="ph-bold ph-check text-[11px]"></i>' : ''}
+              <span>${num}</span>
+            </button>
+          `;
+        }).join('');
+        detStockBadge.textContent = detergentStock ? `${detergentStock} 桶` : '未選';
+        detStockBadge.className = detergentStock ? 'text-[10px] font-extrabold text-emerald-700' : 'text-[10px] font-bold text-slate-400';
+      }
+
+      // 4. 水蠟庫存 (1, 2, 3)
+      const waxStockContainer = document.getElementById('group-wax-stock');
+      const waxStockBadge = document.getElementById('badge-wax-stock');
+      if (waxStockContainer) {
+        waxStockContainer.innerHTML = STOCK_OPTIONS.map(num => {
+          const active = String(waxStock) === num;
+          const btnClass = active
+            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-200'
+            : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100';
+          return `
+            <button type="button" onclick="setLiquidOrStock('waxStock', '${num}')" class="btn-press py-2 px-1 rounded-lg text-xs font-extrabold border transition flex items-center justify-center gap-0.5 ${btnClass}">
+              ${active ? '<i class="ph-bold ph-check text-[11px]"></i>' : ''}
+              <span>${num}</span>
+            </button>
+          `;
+        }).join('');
+        waxStockBadge.textContent = waxStock ? `${waxStock} 桶` : '未選';
+        waxStockBadge.className = waxStock ? 'text-[10px] font-extrabold text-emerald-700' : 'text-[10px] font-bold text-slate-400';
+      }
+    }
 
     function updateConnectionBadge() {
       const badge = document.getElementById('conn-status-badge');
@@ -1272,125 +1495,112 @@
       const storeStr = dealer.name.replace(/[\\/:*?"<>|\s]/g, '');
       const noStr = String(itemNo).padStart(2, '0');
       const cleanName = itemName.replace(/[\\/:*?"<>|\s]/g, '');
-      return `${dateStr}_${storeStr}_${noStr}${cleanName}${idxSuffix}.jpg`;
+      return `${dateStr}_${dealer.code}_${storeStr}_${noStr}${cleanName}${idxSuffix}.jpg`;
     }
 
     // =========================================================================
-    // 3. 分頁切換 (分頁一：89項點檢表單 / 分頁二：現場拍照上傳)
+    // 2C. 照片浮水印壓印與手機本機相簿自動建立副本引擎
     // =========================================================================
-    function switchTab(tabName) {
-      appState.activeTab = tabName;
-      const viewChecklist = document.getElementById('view-checklist');
-      const viewCamera = document.getElementById('view-camera');
-      const btnChecklist = document.getElementById('tab-btn-checklist');
-      const btnCamera = document.getElementById('tab-btn-camera');
-      const footerIcon = document.getElementById('footer-switch-icon');
-      const footerText = document.getElementById('footer-switch-text');
+    function applyPhotoWatermark(ctx, width, height, itemNo, itemName) {
+      if (!appState.enableWatermark) return;
+      const dealer = getActiveDealer();
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const timeText = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const itemLabel = Number(itemNo) === 0 ? '00 門市總覽' : `#${String(itemNo).padStart(2, '0')} ${itemName}`;
+      const line1 = `XMOTO 設備巡檢 ｜ [${dealer.code}] ${dealer.name}`;
+      const line2 = `${itemLabel} ｜ ${timeText}`;
 
-      if (tabName === 'checklist') {
-        viewChecklist.classList.remove('hidden');
-        viewCamera.classList.add('hidden');
+      const fontSize = Math.max(13, Math.round(width * 0.022));
+      const paddingX = Math.round(fontSize * 0.8);
+      const paddingY = Math.round(fontSize * 0.55);
+      const lineHeight = Math.round(fontSize * 1.38);
+      const boxHeight = lineHeight * 2 + paddingY * 2;
 
-        btnChecklist.className = 'py-2 px-2 rounded-lg text-xs font-bold bg-white text-[#1E3A5F] shadow flex items-center justify-center gap-1.5 transition';
-        btnCamera.className = 'py-2 px-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition';
+      ctx.save();
+      ctx.font = `bold ${fontSize}px "Noto Sans TC", sans-serif`;
+      const textWidth = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
+      const boxWidth = Math.min(width - 16, textWidth + paddingX * 2);
+      const boxX = width - boxWidth - 8;
+      const boxY = height - boxHeight - 8;
 
-        footerIcon.className = 'ph-bold ph-camera text-base';
-        footerText.textContent = '拍照上傳';
-        renderSystems();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 8);
       } else {
-        viewChecklist.classList.add('hidden');
-        viewCamera.classList.remove('hidden');
-
-        btnCamera.className = 'py-2 px-2 rounded-lg text-xs font-bold bg-white text-[#1E3A5F] shadow flex items-center justify-center gap-1.5 transition';
-        btnChecklist.className = 'py-2 px-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition';
-
-        footerIcon.className = 'ph-bold ph-list-checks text-base';
-        footerText.textContent = '返回點檢';
-        populateCameraItemSelect();
-        renderCameraGallery();
+        ctx.rect(boxX, boxY, boxWidth, boxHeight);
       }
-      persistDraft();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      ctx.fill();
+
+      ctx.fillStyle = '#38BDF8';
+      ctx.fillText(line1, boxX + paddingX, boxY + paddingY + fontSize, boxWidth - paddingX * 2);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `500 ${Math.round(fontSize * 0.92)}px "Noto Sans TC", sans-serif`;
+      ctx.fillText(line2, boxX + paddingX, boxY + paddingY + fontSize + lineHeight, boxWidth - paddingX * 2);
+      ctx.restore();
     }
 
-    // =========================================================================
-    // 4. App 內建防閃退即時相機 (getUserMedia Live Viewfinder，解決外部相機閃退)
-    // =========================================================================
-    let cameraStream = null;
-    let cameraFacingMode = 'environment';
-    let cameraTorchOn = false;
-    let cameraTargetItemNo = 0;
-
-    function openInAppCameraForItem(itemNo) {
-      cameraTargetItemNo = Number(itemNo);
-      openInAppCameraModal();
+    function dataUrlToBlob(dataUrl) {
+      const parts = dataUrl.split(',');
+      const mime = parts[0].match(/:(.*?);/)[1] || 'image/jpeg';
+      const raw = atob(parts[1]);
+      const u8arr = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) {
+        u8arr[i] = raw.charCodeAt(i);
+      }
+      return new Blob([u8arr], { type: mime });
     }
 
-    function openInAppCameraFromSubpage() {
-      const targetNo = Number(document.getElementById('cam-target-item')?.value || 0);
-      cameraTargetItemNo = targetNo;
-      openInAppCameraModal();
-    }
-
-    async function openInAppCameraModal() {
-      persistDraft(); // 開啟相機前先確保草稿已完整儲存
-      const modal = document.getElementById('inapp-camera-modal');
-      const fallbackBox = document.getElementById('camera-error-fallback');
-      const itemInfo = getItemInfoByNo(cameraTargetItemNo);
-
-      document.getElementById('cam-modal-target-label').textContent =
-        cameraTargetItemNo === 0
-          ? '00 - 門市外觀與洗車機總覽照片'
-          : `#${String(cameraTargetItemNo).padStart(2, '0')} - ${itemInfo.name}`;
-
-      updateCameraSessionThumbnail();
-      fallbackBox.classList.add('hidden');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-
-      await startCameraStream();
-    }
-
-    async function startCameraStream() {
-      stopCameraStream();
-      const videoEl = document.getElementById('camera-video-stream');
-      const fallbackBox = document.getElementById('camera-error-fallback');
-      const torchBtn = document.getElementById('btn-cam-torch');
-
+    function savePhotoCopyToDeviceAlbum(dataUrl, filename, isManual = false) {
       try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('目前瀏覽器不支援即時相機 API，請改用安全模式選取照片。');
+        const blob = dataUrlToBlob(dataUrl);
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 8000);
+        if (isManual) {
+          showToast(`已下載副本至手機相簿：${filename}`, 'ok');
         }
-
-        // 限制視訊串流解析度在 1280x720 以內，大幅降低 Android WebView 記憶體佔用，絕不閃退
-        const constraints = {
-          audio: false,
-          video: {
-            facingMode: { ideal: cameraFacingMode },
-            width: { ideal: 1280, max: 1600 },
-            height: { ideal: 720, max: 1200 }
-          }
-        };
-
-        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
-        videoEl.srcObject = cameraStream;
-        await videoEl.play();
-
-        // 檢查是否支援補光燈 (Torch)
-        const track = cameraStream.getVideoTracks()[0];
-        if (track && typeof track.getCapabilities === 'function') {
-          const caps = track.getCapabilities();
-          if (caps && caps.torch) {
-            torchBtn.classList.remove('hidden');
-          } else {
-            torchBtn.classList.add('hidden');
-          }
-        }
+        return true;
       } catch (err) {
-        console.warn('內建相機串流啟動受限:', err);
-        document.getElementById('camera-error-msg').textContent =
-          '未取得相機鏡頭權限或裝置不支援直接開啟，請點擊下方按鈕以低記憶體安全模式拍照或選取照片。';
-        fallbackBox.classList.remove('hidden');
+        console.warn('自動下載相簿副本失敗:', err);
+        if (isManual) {
+          showToast('下載副本失敗，請嘗試使用分享儲存', 'warn');
+        }
+        return false;
+      }
+    }
+
+    async function manualSavePhotoToAlbum(photoId) {
+      const photo = appState.photos.find(p => p.id === photoId);
+      if (!photo) return;
+
+      // 優先下載至手機相簿/Download 資料夾，若支援系統原生分享面板亦提供補存
+      const downloaded = savePhotoCopyToDeviceAlbum(photo.dataUrl, photo.filename, true);
+      photo.savedToAlbum = true;
+      persistDraft();
+      if (appState.activeTab === 'camera') renderCameraGallery();
+      else renderSystems();
+
+      if (!downloaded && navigator.share && navigator.canShare) {
+        try {
+          const blob = dataUrlToBlob(photo.dataUrl);
+          const file = new File([blob], photo.filename, { type: 'image/jpeg' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: photo.filename,
+              text: `XMOTO 現場點檢照片：${photo.itemName}`
+            });
+          }
+        } catch (e) {}
       }
     }
 
@@ -1446,13 +1656,11 @@
         return;
       }
 
-      // 觸發快門白色閃光回饋
       const flashEl = document.getElementById('camera-shutter-flash');
       flashEl.classList.remove('animate-shutter');
       void flashEl.offsetWidth;
       flashEl.classList.add('animate-shutter');
 
-      // 直接從視訊幀擷取並縮放至最大 1024px（完全不經由高畫素檔，零記憶體溢位風險）
       const MAX_DIM = 1024;
       let width = videoEl.videoWidth;
       let height = videoEl.videoHeight;
@@ -1470,11 +1678,11 @@
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoEl, 0, 0, width, height);
-
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
-      const sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
-
+    async function openInAppCameraModal() {
+      persistDraft();
+      syncAlbumPrefUI();
+      const modal = document.getElementById('inapp-camera-modal');
+      const fallbackBox = document.getElementById('camera-error-fallback');
       const itemInfo = getItemInfoByNo(cameraTargetItemNo);
       const subpageCaption = document.getElementById('cam-photo-caption')?.value.trim() || '';
       const inlineNote = cameraTargetItemNo > 0 ? (appState.records[cameraTargetItemNo]?.note || '') : '';
@@ -1518,8 +1726,78 @@
       }
     }
 
-    // 低記憶體串流降採樣圖片處理 (使用 ObjectURL 取代 FileReader readAsDataURL，大幅減少 RAM 消耗)
     function compressImageLowMemory(file) {
+      return new Promise((resolve, reject) => {
+        const objectUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = function() {
+          try {
+            const MAX_DIM = 1024;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > MAX_DIM || height > MAX_DIM) {
+              if (width > height) {
+                height = Math.round((height * MAX_DIM) / width);
+                width = MAX_DIM;
+              } else {
+                width = Math.round((width * MAX_DIM) / height);
+                height = MAX_DIM;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoEl, 0, 0, width, height);
+
+      const itemInfo = getItemInfoByNo(cameraTargetItemNo);
+      applyPhotoWatermark(ctx, width, height, cameraTargetItemNo, itemInfo.name);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
+      const sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
+
+      const subpageCaption = document.getElementById('cam-photo-caption')?.value.trim() || '';
+      const inlineNote = cameraTargetItemNo > 0 ? (appState.records[cameraTargetItemNo]?.note || '') : '';
+      const caption = subpageCaption || inlineNote;
+
+      const existingCount = appState.photos.filter(p => Number(p.itemNo) === cameraTargetItemNo).length;
+      const suffix = existingCount > 0 ? `_${existingCount + 1}` : '';
+      const filename = generatePhotoFilename(cameraTargetItemNo, itemInfo.name, suffix);
+
+      let savedToAlbum = false;
+      if (appState.autoSaveAlbum) {
+        savedToAlbum = savePhotoCopyToDeviceAlbum(dataUrl, filename, false);
+      }
+
+      appState.photos.unshift({
+        id: 'photo_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        itemNo: cameraTargetItemNo,
+        itemName: itemInfo.name,
+        caption,
+        filename,
+        dataUrl,
+        sizeKB,
+        savedToAlbum,
+        timestamp: new Date().toLocaleTimeString('zh-TW', { hour12: false })
+      });
+
+      if (cameraTargetItemNo > 0 && appState.records[cameraTargetItemNo]) {
+        appState.records[cameraTargetItemNo].drawerOpen = true;
+      }
+
+      persistDraft();
+      updateStats();
+      updateCameraSessionThumbnail();
+      showToast(
+        savedToAlbum
+          ? `拍攝成功 (${sizeKB}KB)！已同步建立副本至手機相簿`
+          : `拍攝成功 (${sizeKB}KB)！已存入 App 保護庫`,
+        'ok'
+      );
+    }
+    function compressImageLowMemory(file, itemNo = 0, itemName = '現場總覽') {
       return new Promise((resolve, reject) => {
         const objectUrl = URL.createObjectURL(file);
         const img = new Image();
@@ -1544,8 +1822,9 @@
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
+            applyPhotoWatermark(ctx, width, height, itemNo, itemName);
 
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
             const sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
             URL.revokeObjectURL(objectUrl);
             resolve({ dataUrl, sizeKB });
@@ -1570,11 +1849,11 @@
       const itemInfo = getItemInfoByNo(targetItemNo);
       const caption = document.getElementById('cam-photo-caption').value.trim();
 
-      showToast(`正在低記憶體安全壓縮 ${files.length} 張照片...`, 'info');
+      showToast(`正在安全壓縮 ${files.length} 張照片...`, 'info');
 
       for (let i = 0; i < files.length; i++) {
         try {
-          const { dataUrl, sizeKB } = await compressImageLowMemory(files[i]);
+          const { dataUrl, sizeKB } = await compressImageLowMemory(files[i], targetItemNo, itemInfo.name);
           const existingCount = appState.photos.filter(p => Number(p.itemNo) === targetItemNo).length;
           const suffix = existingCount > 0 ? `_${existingCount + 1}` : '';
           const filename = generatePhotoFilename(targetItemNo, itemInfo.name, suffix);
@@ -1587,6 +1866,7 @@
             filename,
             dataUrl,
             sizeKB,
+            savedToAlbum: false,
             timestamp: new Date().toLocaleTimeString('zh-TW', { hour12: false })
           });
 
@@ -1610,11 +1890,16 @@
       const file = event.target.files?.[0];
       if (!file) return;
       try {
-        const { dataUrl, sizeKB } = await compressImageLowMemory(file);
         const itemInfo = getItemInfoByNo(cameraTargetItemNo);
+        const { dataUrl, sizeKB } = await compressImageLowMemory(file, cameraTargetItemNo, itemInfo.name);
         const existingCount = appState.photos.filter(p => Number(p.itemNo) === cameraTargetItemNo).length;
         const suffix = existingCount > 0 ? `_${existingCount + 1}` : '';
         const filename = generatePhotoFilename(cameraTargetItemNo, itemInfo.name, suffix);
+
+        let savedToAlbum = false;
+        if (appState.autoSaveAlbum) {
+          savedToAlbum = savePhotoCopyToDeviceAlbum(dataUrl, filename, false);
+        }
 
         appState.photos.unshift({
           id: 'photo_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
@@ -1624,13 +1909,14 @@
           filename,
           dataUrl,
           sizeKB,
+          savedToAlbum,
           timestamp: new Date().toLocaleTimeString('zh-TW', { hour12: false })
         });
 
         persistDraft();
         updateStats();
         closeInAppCamera();
-        showToast(`照片已安全壓縮並儲存 (${sizeKB}KB)`, 'ok');
+        showToast(savedToAlbum ? `照片已儲存並建立相簿副本 (${sizeKB}KB)` : `照片已安全壓縮並儲存 (${sizeKB}KB)`, 'ok');
       } catch (e) {
         showToast('照片讀取失敗，請重試', 'warn');
       }
@@ -1972,9 +2258,13 @@
                   ${itemPhotos.length > 0 ? `
                     <div class="grid grid-cols-2 gap-2 pt-1">
                       ${itemPhotos.map(p => `
-                        <div class="relative bg-white rounded-xl border border-slate-200 overflow-hidden p-1.5">
+                        <div class="relative bg-white rounded-xl border border-slate-200 overflow-hidden p-1.5 space-y-1">
                           <img src="${p.dataUrl}" class="w-full h-20 object-cover rounded-lg" />
-                          <div class="text-[10px] font-mono text-slate-600 truncate mt-1">${p.filename}</div>
+                          <div class="text-[10px] font-mono text-slate-600 truncate">${p.filename}</div>
+                          <button type="button" onclick="manualSavePhotoToAlbum('${p.id}')" class="w-full py-1 px-1.5 rounded-lg ${p.savedToAlbum ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-sky-50 text-[#1E3A5F] border border-sky-200'} text-[10px] font-bold flex items-center justify-center gap-1">
+                            <i class="ph-bold ${p.savedToAlbum ? 'ph-check-circle' : 'ph-download-simple'}"></i>
+                            <span>${p.savedToAlbum ? '已存相簿副本' : '存至手機相簿'}</span>
+                          </button>
                           <button type="button" onclick="deletePhotoById('${p.id}')" class="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center shadow">
                             <i class="ph-bold ph-trash text-xs"></i>
                           </button>
@@ -2109,16 +2399,23 @@
               ${p.caption ? `<p class="text-xs text-slate-600 mt-1 truncate">說明：${p.caption}</p>` : ''}
             </div>
 
-            <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
-              ${p.itemNo > 0 ? `
-                <button type="button" onclick="jumpToChecklistItem(${p.itemNo})" class="text-[11px] font-bold text-[#2C5282] flex items-center gap-1">
-                  <i class="ph-bold ph-arrow-bend-up-left"></i> 跳至該點檢項
-                </button>
-              ` : '<span class="text-[10px] text-slate-400">一般總覽照片</span>'}
-
-              <button type="button" onclick="deletePhotoById('${p.id}')" class="text-[11px] font-bold text-rose-600 flex items-center gap-1 px-2 py-0.5 rounded hover:bg-rose-50">
-                <i class="ph-bold ph-trash"></i> 刪除
+            <div class="flex items-center justify-between gap-1.5 mt-2 pt-1.5 border-t border-slate-100 flex-wrap">
+              <button type="button" onclick="manualSavePhotoToAlbum('${p.id}')" class="text-[11px] font-bold px-2 py-1 rounded-lg ${p.savedToAlbum ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-sky-50 text-[#1E3A5F] border border-sky-200'} flex items-center gap-1">
+                <i class="ph-bold ${p.savedToAlbum ? 'ph-check-circle' : 'ph-download-simple'}"></i>
+                <span>${p.savedToAlbum ? '已存相簿副本' : '存至手機相簿'}</span>
               </button>
+
+              <div class="flex items-center gap-2 ml-auto">
+                ${p.itemNo > 0 ? `
+                  <button type="button" onclick="jumpToChecklistItem(${p.itemNo})" class="text-[11px] font-bold text-[#2C5282] flex items-center gap-1">
+                    <i class="ph-bold ph-arrow-bend-up-left"></i> 跳至項目
+                  </button>
+                ` : ''}
+
+                <button type="button" onclick="deletePhotoById('${p.id}')" class="text-[11px] font-bold text-rose-600 flex items-center gap-1 px-2 py-0.5 rounded hover:bg-rose-50">
+                  <i class="ph-bold ph-trash"></i> 刪除
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2147,7 +2444,7 @@
     }
 
     // =========================================================================
-    // 8. 真實雲端 POST 上傳 (完整 1-89 項 + 照片)、修訂模式與歷史紀錄管理
+    // 8. 真實雲端 POST 上傳 (完整 1-89 項 + 現場原液量/庫存 + 照片)、修訂模式與歷史管理
     // =========================================================================
     function generateRecordId() {
       const compactDate = (appState.meta.date || '2026-11-18').replace(/-/g, '');
@@ -2171,7 +2468,7 @@
 
       submitBtn.disabled = true;
       submitIcon.className = 'ph-bold ph-spinner-gap animate-spin text-lg text-sky-300';
-      submitLabel.textContent = '正在上傳完整 89 項與照片...';
+      submitLabel.textContent = '正在上傳 PDF 報告與照片...';
 
       const dealer = getActiveDealer();
       const storeName = dealer.name;
@@ -2181,6 +2478,11 @@
       const dateStr = appState.meta.date || '2026-11-18';
       const compactDate = dateStr.replace(/-/g, '');
       const inspector = appState.meta.inspector.trim();
+
+      const detergentLevel = appState.meta.detergentLevel || '未填寫';
+      const waxLevel = appState.meta.waxLevel || '未填寫';
+      const detergentStock = appState.meta.detergentStock ? `${appState.meta.detergentStock}` : '未填寫';
+      const waxStock = appState.meta.waxStock ? `${appState.meta.waxStock}` : '未填寫';
 
       let okCount = 0, errCount = 0, warnCount = 0;
       for (let i = 1; i <= 89; i++) {
@@ -2236,6 +2538,10 @@
         date: dateStr,
         compactDate,
         inspector,
+        detergentLevel,
+        waxLevel,
+        detergentStock,
+        waxStock,
         healthRate,
         abnormalCount: errCount,
         watchCount: warnCount,
@@ -2279,6 +2585,10 @@
         address: dealer.address,
         date: dateStr,
         inspector,
+        detergentLevel,
+        waxLevel,
+        detergentStock,
+        waxStock,
         stats: {
           ok: okCount,
           abnormal: errCount,
@@ -2315,9 +2625,12 @@
     }
 
     function openArchiveModal(recordSnapshot, isRevision) {
-      const { recordId, version, updatedAt, cloudSyncMode, regionShort, dealerCode, storeName, address, date, stats, stateSnapshot } = recordSnapshot;
+      const {
+        recordId, version, updatedAt, cloudSyncMode, regionShort, dealerCode,
+        storeName, address, date, detergentLevel, waxLevel, detergentStock, waxStock, stats, stateSnapshot
+      } = recordSnapshot;
       const compactDate = date.replace(/-/g, '');
-      const sheetFileName = `[點檢紀錄]_${compactDate}_${dealerCode}_${storeName}`;
+      const reportFileName = `[點檢紀錄]_${compactDate}_${dealerCode}_${storeName}`;
 
       document.getElementById('modal-title').textContent = isRevision
         ? `修訂完成！已重新上傳 (v${version})`
@@ -2354,7 +2667,7 @@
              <div>
                <h4 class="text-sm font-bold">已即時傳送至 Google Drive「經銷資料庫 / 分權資料庫」！</h4>
                <p class="text-xs text-emerald-100 mt-1 leading-relaxed">
-                 已自動建立 <strong>${regionShort} / ${storeName} / ${compactDate}</strong> 資料夾並寫入完整 89 項點檢報表與 ${stats.photoCount} 張現場照片。
+                 已自動建立 <strong>${regionShort} / ${storeName} / ${compactDate}</strong> 資料夾並生成內嵌照片的正式 PDF 檢修報告（含首頁藥劑液位與庫存總覽）。
                </p>
              </div>
            </div>`
@@ -2363,7 +2676,7 @@
              <div>
                <h4 class="text-sm font-bold">已儲存本機紀錄（離線模擬模式）</h4>
                <p class="text-xs text-blue-100 mt-1 leading-relaxed">
-                 尚未填入 Apps Script 網址，目前以模擬模式展示「經銷資料庫 / 分權資料庫」歸檔結構。點擊右上角齒輪貼上網址即可直接上傳雲端。
+                 尚未填入 Apps Script 網址，目前以模擬模式展示歸檔結構。點擊右上角「雲端設定」貼上網址即可直接生成 PDF 上傳。
                </p>
              </div>
            </div>`;
@@ -2371,6 +2684,32 @@
       const body = document.getElementById('archive-modal-body');
       body.innerHTML = `
         ${syncBannerHtml}
+
+        <!-- 現場原液量與備品庫存首頁摘要卡 -->
+        <div class="bg-white rounded-2xl p-3.5 border-2 border-[#2C5282]/25 shadow-xs space-y-2">
+          <div class="text-xs font-extrabold text-[#1E3A5F] flex items-center gap-1.5">
+            <i class="ph-fill ph-flask text-[#2C5282] text-base"></i>
+            <span>PDF 首頁顯眼指標：現場藥劑液位與庫存</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-sky-50 border border-sky-200 rounded-xl p-2 flex items-center justify-between">
+              <span class="text-slate-600 font-semibold">現場原液量</span>
+              <strong class="text-[#1E3A5F] text-sm">${detergentLevel}</strong>
+            </div>
+            <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-2 flex items-center justify-between">
+              <span class="text-slate-600 font-semibold">現場水蠟原液量</span>
+              <strong class="text-indigo-900 text-sm">${waxLevel}</strong>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2 flex items-center justify-between">
+              <span class="text-slate-600 font-semibold">洗劑庫存</span>
+              <strong class="text-emerald-800 text-sm">${detergentStock === '未填寫' ? '未填寫' : detergentStock + ' 桶'}</strong>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2 flex items-center justify-between">
+              <span class="text-slate-600 font-semibold">水蠟庫存</span>
+              <strong class="text-emerald-800 text-sm">${waxStock === '未填寫' ? '未填寫' : waxStock + ' 桶'}</strong>
+            </div>
+          </div>
+        </div>
 
         <!-- Google Drive 經銷資料庫 / 分權資料庫 自動分區結構 -->
         <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
@@ -2383,7 +2722,8 @@
             <div class="pl-3 text-slate-300">└── 📁 ${regionShort} /</div>
             <div class="pl-6 text-amber-300 font-bold">└── 📁 ${storeName} /</div>
             <div class="pl-9 text-emerald-300 font-bold">└── 📁 ${compactDate} /</div>
-            <div class="pl-12 text-white">├── 📊 ${sheetFileName}.csv (完整 1~89 項)</div>
+            <div class="pl-12 text-rose-300 font-bold">├── 📄 ${reportFileName}.pdf (含首頁藥劑看板＋89項＋內嵌照片)</div>
+            <div class="pl-12 text-white">├── 📊 ${reportFileName}.csv (數據彙整檔)</div>
             ${stateSnapshot.photos.length === 0
               ? `<div class="pl-12 text-slate-400">└── (本次無附加現場照片)</div>`
               : stateSnapshot.photos.slice(0, 5).map(p => `
@@ -2461,11 +2801,18 @@
       const snap = JSON.parse(JSON.stringify(target.stateSnapshot));
       appState.editingRecordId = target.recordId;
       appState.revisionVersion = target.version;
-      appState.meta = snap.meta;
+      appState.meta = {
+        detergentLevel: '',
+        waxLevel: '',
+        detergentStock: '',
+        waxStock: '',
+        ...snap.meta
+      };
       appState.records = { ...createDefaultNormalRecords(), ...snap.records };
       appState.photos = snap.photos || [];
 
       syncMetaToDOM();
+      renderLiquidAndStockControls();
       updateRevisionBannerUI();
       persistDraft();
       updateStats();
@@ -2494,8 +2841,13 @@
     function exitRevisionMode() {
       appState.editingRecordId = null;
       appState.revisionVersion = 1;
+      appState.meta.detergentLevel = '';
+      appState.meta.waxLevel = '';
+      appState.meta.detergentStock = '';
+      appState.meta.waxStock = '';
       appState.records = createDefaultNormalRecords();
       appState.photos = [];
+      renderLiquidAndStockControls();
       clearSearch();
       setFilter('all');
       updateRevisionBannerUI();
@@ -2555,6 +2907,13 @@
               </span>
             </div>
 
+            <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+              <span>原液量：<strong>${rec.detergentLevel || '未填'}</strong></span>·
+              <span>水蠟量：<strong>${rec.waxLevel || '未填'}</strong></span>·
+              <span>洗劑庫存：<strong>${rec.detergentStock || '未填'}</strong></span>·
+              <span>水蠟庫存：<strong>${rec.waxStock || '未填'}</strong></span>
+            </div>
+
             <div class="flex items-center gap-2 text-[11px] text-slate-500">
               <span>正常 ${rec.stats.ok}</span>·
               <span class="text-rose-600 font-semibold">異常 ${rec.stats.abnormal}</span>·
@@ -2587,9 +2946,14 @@
       const dealerCode = dealer.code;
       const dateStr = appState.meta.date || '2026-11-18';
       const inspector = appState.meta.inspector.trim() || '未填寫';
+      const detLvl = appState.meta.detergentLevel || '未填寫';
+      const waxLvl = appState.meta.waxLevel || '未填寫';
+      const detStk = appState.meta.detergentStock || '未填寫';
+      const waxStk = appState.meta.waxStock || '未填寫';
 
       let csv = '\uFEFF';
       csv += `區域,${dealer.region},經銷編號,${dealerCode},門市名稱,${storeName},門市地址,"${dealer.address}",點檢日期,${dateStr},點檢技師,${inspector},版本,v${appState.revisionVersion}\n`;
+      csv += `現場原液量,${detLvl},現場水蠟原液量,${waxLvl},洗劑庫存,${detStk},水蠟庫存,${waxStk}\n`;
       csv += '項次,系統分類,設備項目,驗收基準,點檢結果,異常現象,處理措施,照片數量\n';
 
       SYSTEMS_DATA.forEach(sys => {
@@ -2633,8 +2997,13 @@
     function executeResetAllNormal() {
       appState.editingRecordId = null;
       appState.revisionVersion = 1;
+      appState.meta.detergentLevel = '';
+      appState.meta.waxLevel = '';
+      appState.meta.detergentStock = '';
+      appState.meta.waxStock = '';
       appState.records = createDefaultNormalRecords();
       appState.photos = [];
+      renderLiquidAndStockControls();
       clearSearch();
       setFilter('all');
       updateRevisionBannerUI();
