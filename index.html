@@ -383,13 +383,13 @@
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0">
               <div class="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
-                <span>📂 手機本機相簿自動備份資料夾</span>
-                <span id="device-dir-status" class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black">未綁定</span>
+                <span>📂 手機本機相簿副本保存</span>
+                <span id="device-dir-status" class="text-[10px] bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded font-black">就緒</span>
               </div>
-              <p class="text-[11px] text-emerald-800 mt-0.5">點擊右側按鈕向手機請求資料夾讀寫權限（建議選 <b>Pictures</b> 或 <b>Download</b>），授權後每次拍照皆自動靜默存入副本。</p>
+              <p class="text-[11px] text-emerald-800 mt-0.5">點擊右側按鈕可綁定手機資料夾或直接將已拍照片批次存入手機相簿。</p>
             </div>
-            <button type="button" onclick="bindDeviceAlbumDirectory()" class="shrink-0 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold px-3 py-2 rounded-xl shadow-xs transition">
-              授權資料夾
+            <button type="button" onclick="bindDeviceAlbumDirectory()" class="shrink-0 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white text-xs font-extrabold px-3 py-2 rounded-xl shadow-xs transition">
+              授權 / 存相簿
             </button>
           </div>
         </div>
@@ -1355,10 +1355,12 @@
     let deviceAlbumDirHandle = null;
 
     async function bindDeviceAlbumDirectory() {
+      const badge = document.getElementById('device-dir-status');
+
+      // 1. 優先嘗試現代瀏覽器的資料夾直連授權（Desktop / Android Chrome）
       if (typeof window.showDirectoryPicker === 'function') {
         try {
           deviceAlbumDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-          const badge = document.getElementById('device-dir-status');
           if (badge) {
             badge.textContent = `已授權：${deviceAlbumDirHandle.name}`;
             badge.className = 'text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded font-black';
@@ -1366,16 +1368,42 @@
           showToast(`已取得「${deviceAlbumDirHandle.name}」讀寫權限，拍照將自動存入副本！`, 'success');
           return true;
         } catch (err) {
-          if (err.name !== 'AbortError') {
-            showToast('此 APK 環境不支援資料夾直連，請改用單張「存相簿」按鈕', 'info');
-          }
-          return false;
+          if (err.name === 'AbortError') return false;
         }
-      } else {
-        showToast('目前 WebView 不支援直接綁定資料夾，請確認 APK 打包已勾選 Storage 權限', 'info');
+      }
+
+      // 2. Android WebView (APK) 不支援 showDirectoryPicker 時：改為一鍵將所有已拍照片透過系統原生分享存入手機相簿
+      if (badge) {
+        badge.textContent = '原生分享模式';
+        badge.className = 'text-[10px] bg-sky-600 text-white px-1.5 py-0.5 rounded font-black';
+      }
+
+      if (appState.photos.length === 0) {
+        showToast('Android APK 環境已啟用安全存圖模式！請先拍攝照片，再點此按鈕或照片旁的「存相簿」寫入圖庫。', 'info');
         return false;
       }
+
+      try {
+        const files = appState.photos.map(p => new File([dataUrlToBlob(p.base64Data)], p.fileName, { type: 'image/jpeg' }));
+        if (navigator.canShare && navigator.canShare({ files })) {
+          await navigator.share({
+            files: files,
+            title: `XMOTO 巡檢照片 (${files.length} 張)`
+          });
+          showToast(`已開啟系統儲存面板（共 ${files.length} 張照片）`, 'success');
+          return true;
+        }
+      } catch (shareErr) {
+        if (shareErr.name !== 'AbortError') {
+          showToast('請點擊下方單張照片的「存相簿」並長按圖片儲存', 'info');
+        }
+        return false;
+      }
+
+      showToast('請點擊下方照片卡片的「存相簿」進行保存', 'info');
+      return false;
     }
+
     async function savePhotoCopyToDeviceMemory(base64Data, asciiFileName, silentAuto = true) {
       try {
         const blob = dataUrlToBlob(base64Data);
