@@ -380,7 +380,7 @@
 
         <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-[11px] text-emerald-900 font-medium flex items-start gap-2">
           <span class="text-sm leading-none">🛡️</span>
-          <span>照片會自動壓印門市與時間浮水印並安全儲存於本機保護庫（不觸發會導致閃退的舊式下載視窗）；如需單張存至手機相簿，可點擊照片卡片上的「分享 / 存至相簿」。</span>
+          <span>拍照後會自動壓印門市與時間浮水印，並以純英數標準檔名（如 <b>XMOTO_20261118_SK01_01.jpg</b>）安全寫入手機 Download / 相簿記憶空間（不再出現亂碼或閃退）。</span>
         </div>
       </section>
 
@@ -1387,62 +1387,155 @@
 
     function buildStandardPhotoFileName(itemId, itemName) {
       const dateStr = (appState.meta.date || '').replace(/[^0-9]/g, '') || new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const code = appState.meta.dealerCode || 'XM';
-      const store = (appState.meta.dealerName || '門市').replace(/[\\/:*?"<>|]/g, '');
+      const code = (appState.meta.dealerCode || 'XM').replace(/[^A-Za-z0-9]/g, '');
       const seq = String(appState.photos.length + 1).padStart(2, '0');
-      const itemTag = itemId ? `${String(itemId).padStart(2, '0')}${itemName}` : `現場巡檢${seq}`;
-      return `${dateStr}_${code}_${store}_${itemTag}.jpg`;
+      const itemPart = itemId ? `ITEM${String(itemId).padStart(2, '0')}` : `SCENE`;
+      return `XMOTO_${dateStr}_${code}_${itemPart}_${seq}.jpg`;
     }
 
-    function processAndWatermarkImage(sourceCanvasOrImg, width, height) {
-      const MAX_DIM = 1024;
-      let targetW = width;
-      let targetH = height;
-      if (targetW > MAX_DIM || targetH > MAX_DIM) {
-        if (targetW > targetH) {
-          targetH = Math.round((targetH * MAX_DIM) / targetW);
-          targetW = MAX_DIM;
+    function dataUrlToBlob(dataUrl) {
+      const parts = dataUrl.split(',');
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const byteString = atob(parts[1]);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      return new Blob([ab], { type: mime });
+    }
+
+    async function savePhotoCopyToDeviceMemory(base64Data, asciiFileName, silentAuto = true) {
+      try {
+        const blob = dataUrlToBlob(base64Data);
+        const isAndroidWebView = /wv|Android.*Version\/[\d.]+/i.test(navigator.userAgent);
+
+        // 1. 支援 File System Access API 的瀏覽器直接寫入手機儲存空間
+        if (!silentAuto && window.showSaveFilePicker) {
+          try {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: asciiFileName,
+              types: [{ description: 'JPEG Image', accept: { 'image/jpeg': ['.jpg'] } }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            showToast(`已將副本存入裝置：${asciiFileName}`, 'success');
+            return true;
+          } catch (e) {
+            if (e.name === 'AbortError') return false;
+          }
+        }
+
+        // 2. Android WebView 環境：手動點擊時呼叫原生系統分享面板存入 Google 相簿 / 手機圖庫
+        if (!silentAuto && navigator.canShare) {
+          const file = new File([blob], asciiFileName, { type: 'image/jpeg' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: asciiFileName
+            });
+            return true;
+          }
+        }
+
+        // 3. 一般手機瀏覽器 / 非舊版 WebView：使用 Blob ObjectURL 寫入 Download 資料夾（絕不使用會閃退的 data: URI）
+        if (!isAndroidWebView) {
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = asciiFileName;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 8000);
+          return true;
+        }
+
+        return false;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function switchTab(tabName) {
+      appState.activeTab = tabName;
+      const isChecklist = tabName === 'checklist';
+
+      document.getElementById('view-checklist').classList.toggle('hidden', !isChecklist);
+      document.getElementById('view-camera').classList.toggle('hidden', isChecklist);
+      document.getElementById('checklist-stats-bar').classList.toggle('hidden', !isChecklist);
+      document.getElementById('search-bar-container').classList.toggle('hidden', !isChecklist);
+
+      const btnCheck = document.getElementById('tab-btn-checklist');
+      const btnCam = document.getElementById('tab-btn-camera');
+      if (isChecklist) {
+        btnCheck.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold bg-white text-[#1E3A5F] shadow transition';
+        btnCam.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold text-sky-100 hover:bg-white/10 transition';
+        document.getElementById('footer-switch-label').innerHTML = `📷 拍照 (<span id="footer-photo-count">${appState.photos.length}</span>)`;
+      } else {
+        btnCam.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold bg-white text-[#1E3A5F] shadow transition';
+        btnCheck.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold text-sky-100 hover:bg-white/10 transition';
+        document.getElementById('footer-switch-label').innerHTML = `📋 返回點檢表`;
+        renderCameraItemOptions();
+        renderCameraGallery();
+      }
+    }
+
+    function processAndWatermarkImage(sourceEl, srcWidth, srcHeight) {
+      const maxDim = 1024;
+      let w = srcWidth || 1024;
+      let h = srcHeight || 768;
+      if (w > maxDim || h > maxDim) {
+        if (w >= h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
         } else {
-          targetW = Math.round((targetW * MAX_DIM) / targetH);
-          targetH = MAX_DIM;
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
         }
       }
 
       const canvas = document.createElement('canvas');
-      canvas.width = targetW;
-      canvas.height = targetH;
+      canvas.width = w;
+      canvas.height = h;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(sourceCanvasOrImg, 0, 0, targetW, targetH);
+      ctx.drawImage(sourceEl, 0, 0, w, h);
 
-      // 右下角壓印門市與時間浮水印
+      // 右下角壓印半透明門市與時間浮水印
       const nowStr = new Date().toLocaleString('zh-TW', { hour12: false });
       const wmText = `XMOTO 設備巡檢 | [${appState.meta.dealerCode}] ${appState.meta.dealerName} | ${nowStr}`;
-      const fontSize = Math.max(12, Math.round(targetW * 0.022));
-      ctx.font = `bold ${fontSize}px sans-serif`;
+      const fontSize = Math.max(12, Math.round(w * 0.022));
+      ctx.font = `bold ${fontSize}px "Noto Sans TC", sans-serif`;
       const textWidth = ctx.measureText(wmText).width;
       const padX = 12;
-      const boxH = fontSize + 14;
-      const boxW = Math.min(targetW - 16, textWidth + padX * 2);
+      const padY = 8;
+      const boxW = Math.min(w - 16, textWidth + padX * 2);
+      const boxH = fontSize + padY * 2;
+      const boxX = w - boxW - 8;
+      const boxY = h - boxH - 8;
 
       ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
-      ctx.fillRect(targetW - boxW - 8, targetH - boxH - 8, boxW, boxH);
+      ctx.fillRect(boxX, boxY, boxW, boxH);
       ctx.fillStyle = '#F8FAFC';
-      ctx.fillText(wmText, targetW - boxW - 8 + padX, targetH - 14, boxW - padX * 2);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(wmText, boxX + padX, boxY + boxH / 2, boxW - padX * 2);
 
-      return canvas.toDataURL('image/jpeg', 0.78);
+      return canvas.toDataURL('image/jpeg', 0.82);
     }
 
     async function openInAppCameraModal() {
       const modal = document.getElementById('inapp-camera-modal');
-      const fallback = document.getElementById('camera-error-fallback');
-      modal.classList.remove('hidden');
-      fallback.classList.add('hidden');
-
       const sel = document.getElementById('camera-item-select');
-      const selectedText = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '現場巡檢全景';
-      document.getElementById('cam-modal-item-label').textContent = selectedText;
+      const selectedOptText = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '現場巡檢全景';
+
+      document.getElementById('cam-modal-item-label').textContent = selectedOptText;
       document.getElementById('cam-modal-store-label').textContent = `[${appState.meta.dealerCode}] ${appState.meta.dealerName}`;
       document.getElementById('cam-modal-count').textContent = appState.photos.length;
+      document.getElementById('camera-error-fallback').classList.add('hidden');
+      modal.classList.remove('hidden');
 
       await startCameraStream();
     }
@@ -1451,35 +1544,35 @@
       stopCameraStream();
       const video = document.getElementById('camera-video-preview');
       const fallback = document.getElementById('camera-error-fallback');
+      const errMsg = document.getElementById('camera-error-msg');
       const torchBtn = document.getElementById('torch-btn');
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         fallback.classList.remove('hidden');
+        errMsg.textContent = '目前環境不支援內建鏡頭串流，請點擊下方按鈕從相簿選取。';
         return;
       }
 
       try {
         cameraStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: currentFacingMode },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
+          video: { facingMode: { ideal: currentFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false
         });
         video.srcObject = cameraStream;
         fallback.classList.add('hidden');
 
         const track = cameraStream.getVideoTracks()[0];
-        const caps = track && track.getCapabilities ? track.getCapabilities() : {};
-        if (caps.torch) {
-          torchBtn.classList.remove('hidden');
-        } else {
-          torchBtn.classList.add('hidden');
+        if (track && typeof track.getCapabilities === 'function') {
+          const caps = track.getCapabilities();
+          if (caps && caps.torch) {
+            torchBtn.classList.remove('hidden');
+          } else {
+            torchBtn.classList.add('hidden');
+          }
         }
       } catch (err) {
-        document.getElementById('camera-error-msg').textContent = `鏡頭啟動受限 (${err.name || '權限未開'})，請改用下方相簿/相機按鈕。`;
         fallback.classList.remove('hidden');
+        errMsg.textContent = `鏡頭啟動失敗（${err.name || '權限未開啟'}），請確認已開啟 App 相機權限或改用下方選取照片。`;
       }
     }
 
@@ -1544,7 +1637,7 @@
       });
     }
 
-    function addCapturedPhotoToState(base64Data) {
+    async function addCapturedPhotoToState(base64Data) {
       const sel = document.getElementById('camera-item-select');
       const itemId = sel && sel.value ? Number(sel.value) : null;
       let itemName = '現場巡檢全景';
@@ -1569,6 +1662,57 @@
       persistDraft();
       renderCameraGallery();
       renderSystems();
+
+      await savePhotoCopyToDeviceMemory(base64Data, fileName, true);
+    }
+
+    function renderCameraGallery() {
+      const count = appState.photos.length;
+      const tabBadge = document.getElementById('tab-badge-photos');
+      const totalBadge = document.getElementById('cam-photo-total-badge');
+      const footerCount = document.getElementById('footer-photo-count');
+      if (tabBadge) tabBadge.textContent = count;
+      if (totalBadge) totalBadge.textContent = `${count} 張`;
+      if (footerCount) footerCount.textContent = count;
+
+      const grid = document.getElementById('camera-gallery-grid');
+      if (!grid) return;
+
+      if (count === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-10 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400">
+            <div class="text-3xl mb-1.5">📷</div>
+            <p class="text-xs font-extrabold">尚未拍攝任何現場照片</p>
+            <p class="text-[11px] mt-0.5">點擊上方按鈕開啟內建相機或從相簿匯入</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = appState.photos.map(photo => `
+        <div class="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50 flex flex-col">
+          <div class="relative aspect-video bg-slate-900 cursor-pointer" onclick="openPhotoViewer('${photo.id}')">
+            <img src="${photo.base64Data}" alt="${escapeHtml(photo.itemName)}" class="w-full h-full object-contain" />
+            <span class="absolute top-2 left-2 bg-black/75 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md">
+              ${photo.itemId ? `#${photo.itemId} ${escapeHtml(photo.itemName)}` : '現場巡檢全景'}
+            </span>
+          </div>
+          <div class="p-2.5 flex items-center justify-between gap-2 bg-white border-t border-slate-200/80">
+            <div class="min-w-0">
+              <div class="text-[11px] font-extrabold text-slate-800 truncate">${escapeHtml(photo.fileName)}</div>
+              <div class="text-[10px] text-slate-400">拍攝時間：${escapeHtml(photo.capturedAt || '')}</div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="openPhotoViewer('${photo.id}')" class="bg-sky-100 hover:bg-sky-200 text-[#1E3A5F] text-[11px] font-extrabold px-2.5 py-1.5 rounded-lg">
+                存相簿
+              </button>
+              <button type="button" onclick="deletePhoto('${photo.id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-extrabold px-2.5 py-1.5 rounded-lg">
+                刪除
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
     }
 
     function deletePhoto(photoId) {
@@ -1597,93 +1741,9 @@
     async function shareCurrentPhoto() {
       const photo = appState.photos.find(p => p.id === currentViewingPhotoId);
       if (!photo) return;
-      try {
-        const res = await fetch(photo.base64Data);
-        const blob = await res.blob();
-        const file = new File([blob], photo.fileName, { type: 'image/jpeg' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: photo.fileName,
-            text: `XMOTO 設備巡檢照片：${photo.itemName}`
-          });
-          return;
-        }
-      } catch (e) {}
-      showToast('請直接長按圖片選擇「儲存圖片」至手機相簿', 'info');
-    }
-
-    function renderCameraGallery() {
-      const grid = document.getElementById('camera-gallery-grid');
-      const count = appState.photos.length;
-
-      document.getElementById('tab-badge-photos').textContent = count;
-      document.getElementById('cam-photo-total-badge').textContent = `${count} 張`;
-      document.getElementById('footer-photo-count').textContent = count;
-
-      if (count === 0) {
-        grid.innerHTML = `
-          <div class="col-span-full py-8 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl">
-            <div class="text-2xl mb-1">📷</div>
-            <p class="text-xs font-bold">目前尚未拍攝任何現場照片</p>
-          </div>
-        `;
-        return;
-      }
-
-      grid.innerHTML = appState.photos.map((p, idx) => `
-        <div class="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
-          <div class="relative bg-slate-900 aspect-video flex items-center justify-center cursor-pointer" onclick="openPhotoViewer('${p.id}')">
-            <img src="${p.base64Data}" alt="${escapeHtml(p.fileName)}" class="w-full h-full object-contain" />
-            <span class="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md">
-              #${idx + 1} · ${p.capturedAt || ''}
-            </span>
-          </div>
-          <div class="p-2.5 flex-1 flex flex-col justify-between gap-2">
-            <div>
-              <div class="text-xs font-extrabold text-[#1E3A5F] truncate">
-                ${p.itemId ? `#${p.itemId} ${escapeHtml(p.itemName)}` : '📍 一般現場巡檢全景'}
-              </div>
-              <div class="text-[10px] text-slate-500 font-mono truncate mt-0.5">${escapeHtml(p.fileName)}</div>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <button type="button" onclick="openPhotoViewer('${p.id}')" class="flex-1 bg-sky-100 hover:bg-sky-200 text-sky-900 text-[11px] font-extrabold py-1.5 px-2 rounded-xl transition">
-                🔍 大圖 / 存相簿
-              </button>
-              <button type="button" onclick="deletePhoto('${p.id}')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-extrabold py-1.5 px-2.5 rounded-xl border border-rose-200 transition">
-                刪除
-              </button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // ==================== 7. 分頁切換、雲端設定與送出上傳 ====================
-    function switchTab(tabName) {
-      appState.activeTab = tabName;
-      const isChecklist = tabName === 'checklist';
-
-      document.getElementById('view-checklist').classList.toggle('hidden', !isChecklist);
-      document.getElementById('view-camera').classList.toggle('hidden', isChecklist);
-      document.getElementById('checklist-stats-bar').classList.toggle('hidden', !isChecklist);
-      document.getElementById('search-bar-container').classList.toggle('hidden', !isChecklist);
-
-      document.getElementById('tab-btn-checklist').className = isChecklist
-        ? 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold bg-white text-[#1E3A5F] shadow transition'
-        : 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold text-sky-100 hover:bg-white/10 transition';
-
-      document.getElementById('tab-btn-camera').className = !isChecklist
-        ? 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold bg-white text-[#1E3A5F] shadow transition'
-        : 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold text-sky-100 hover:bg-white/10 transition';
-
-      document.getElementById('footer-switch-label').innerHTML = isChecklist
-        ? `📷 拍照 (<span id="footer-photo-count">${appState.photos.length}</span>)`
-        : `📋 返回點檢表`;
-
-      if (!isChecklist) {
-        renderCameraItemOptions();
-        renderCameraGallery();
+      const saved = await savePhotoCopyToDeviceMemory(photo.base64Data, photo.fileName, false);
+      if (!saved) {
+        showToast('請直接長按上方圖片選擇「儲存圖片」至手機相簿', 'info');
       }
     }
 
