@@ -300,51 +300,7 @@
                   <span class="shrink-0 px-2.5 py-1.5 rounded-lg bg-blue-600 group-hover:bg-blue-700 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs">
                     <span>導航</span>
                     <i class="ph-bold ph-arrow-up-right text-xs"></i>
-                  </span>
-                </div>
-              </a>
-            </div>
-
-            <!-- 4. 經銷編號 (自動帶入 ID_CODE) + 點檢日期 + 點檢技師姓名 -->
-            <div class="grid grid-cols-2 gap-2.5">
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-600 mb-1">經銷編號 (ID CODE)</label>
-                <div class="relative flex items-center">
-                  <input
-                    type="text"
-                    id="dealer-code-input"
-                    value="SK01"
-                    readonly
-                    class="w-full bg-slate-100 border border-slate-300 text-[#1E3A5F] text-xs sm:text-sm rounded-xl px-3 py-2 font-mono font-extrabold tracking-wider select-all cursor-default"
-                  />
-                  <span class="absolute right-2.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">自動帶入</span>
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-600 mb-1">點檢日期</label>
-                <input type="date" id="inspect-date" value="2026-11-18" onchange="saveMeta()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2" />
-              </div>
-
-              <div class="col-span-2">
-                <label class="block text-[11px] font-semibold text-slate-600 mb-1">點檢技師姓名 <span class="text-rose-500">*</span></label>
-                <input type="text" id="inspector-name" oninput="saveMeta()" placeholder="請輸入現場維保技師姓名" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2C5282]" />
-              </div>
-            </div>
-
-            <!-- 5. 現場藥劑與耗材庫存快速勾選卡片 (位於點檢技師姓名正下方，並顯示於 PDF 第一頁顯眼位置) -->
-            <div id="liquid-stock-card" class="bg-gradient-to-br from-sky-50/90 via-blue-50/70 to-indigo-50/60 border-2 border-[#2C5282]/30 rounded-2xl p-3 space-y-3 shadow-xs">
-              <div class="flex items-center justify-between border-b border-[#2C5282]/15 pb-1.5">
-                <span class="text-xs font-extrabold text-[#1E3A5F] flex items-center gap-1.5">
-                  <i class="ph-fill ph-flask text-base text-[#2C5282]"></i>
-                  現場藥劑原液量與耗材庫存勾選
-                </span>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1E3A5F] text-white">
-                  顯示於 PDF 報告首頁
-                </span>
-              </div>
-
-              <!-- (1) 現場原液量：全滿、8分、6分、4分、2分 -->
+              <!-- (1) 現場原液量：全滿、8分、6分、4分、2分（直接內建 HTML 按鈕，確保 100% 顯示） -->
               <div>
                 <div class="flex items-center justify-between mb-1">
                   <label class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
@@ -354,11 +310,25 @@
                   <span id="badge-detergent-level" class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200 text-slate-600">請點選液位</span>
                 </div>
                 <div class="grid grid-cols-5 gap-1.5" id="group-detergent-level">
-                  <!-- 由 JS 動態生成 5 個大按鈕 -->
+                  <button type="button" data-opt="全滿" onclick="setLiquidOrStock('detergentLevel', '全滿')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 bg-white text-slate-700 border-slate-300 hover:bg-sky-50">
+                    <span>☐ 全滿</span>
+                  </button>
+                  <button type="button" data-opt="8分" onclick="setLiquidOrStock('detergentLevel', '8分')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 bg-white text-slate-700 border-slate-300 hover:bg-sky-50">
+                    <span>☐ 8分</span>
+                  </button>
+                  <button type="button" data-opt="6分" onclick="setLiquidOrStock('detergentLevel', '6分')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 bg-white text-slate-700 border-slate-300 hover:bg-sky-50">
+                    <span>☐ 6分</span>
+                  </button>
+                  <button type="button" data-opt="4分" onclick="setLiquidOrStock('detergentLevel', '4分')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 bg-white text-slate-700 border-slate-300 hover:bg-sky-50">
+                    <span>☐ 4分</span>
+                  </button>
+                  <button type="button" data-opt="2分" onclick="setLiquidOrStock('detergentLevel', '2分')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 bg-white text-slate-700 border-slate-300 hover:bg-sky-50">
+                    <span>☐ 2分</span>
+                  </button>
                 </div>
               </div>
 
-              <!-- (2) 現場水蠟原液量：全滿、8分、6分、4分、2分 -->
+              <!-- (2) 現場水蠟原液量：全滿、8分、6分、4分、2分（直接內建 HTML 按鈕，確保 100% 顯示） -->
               <div>
                 <div class="flex items-center justify-between mb-1">
                   <label class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
@@ -368,11 +338,25 @@
                   <span id="badge-wax-level" class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200 text-slate-600">請點選液位</span>
                 </div>
                 <div class="grid grid-cols-5 gap-1.5" id="group-wax-level">
-                  <!-- 由 JS 動態生成 5 個大按鈕 -->
+                  <button type="button" data-opt="全滿" onclick="setLiquidOrStock('waxLevel', '全滿')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 bg-white text-slate-700 border-slate-300 hover:bg-indigo-50">
+                    <span>☐ 全滿</span>
+                  </button>
+                  <button type="button" data-opt="8分" onclick="setLiquidOrStock('waxLevel', '8分')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 bg-white text-slate-700 border-slate-300 hover:bg-indigo-50">
+                    <span>☐ 8分</span>
+                  </button>
+                  <button type="button" data-opt="6分" onclick="setLiquidOrStock('waxLevel', '6分')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 bg-white text-slate-700 border-slate-300 hover:bg-indigo-50">
+                    <span>☐ 6分</span>
+                  </button>
+                  <button type="button" data-opt="4分" onclick="setLiquidOrStock('waxLevel', '4分')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 bg-white text-slate-700 border-slate-300 hover:bg-indigo-50">
+                    <span>☐ 4分</span>
+                  </button>
+                  <button type="button" data-opt="2分" onclick="setLiquidOrStock('waxLevel', '2分')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 bg-white text-slate-700 border-slate-300 hover:bg-indigo-50">
+                    <span>☐ 2分</span>
+                  </button>
                 </div>
               </div>
 
-              <!-- (3) 洗劑庫存 & (4) 水蠟庫存：1、2、3 -->
+              <!-- (3) 洗劑庫存 & (4) 水蠟庫存：1、2、3（直接內建 HTML 按鈕，確保 100% 顯示） -->
               <div class="grid grid-cols-2 gap-2.5 pt-0.5">
                 <div class="bg-white/85 rounded-xl p-2 border border-slate-200/90">
                   <div class="flex items-center justify-between mb-1.5">
@@ -380,7 +364,15 @@
                     <span id="badge-detergent-stock" class="text-[10px] font-bold text-slate-500">未選</span>
                   </div>
                   <div class="grid grid-cols-3 gap-1.5" id="group-detergent-stock">
-                    <!-- 由 JS 動態生成 1, 2, 3 按鈕 -->
+                    <button type="button" data-opt="1" onclick="setLiquidOrStock('detergentStock', '1')" class="btn-press py-2 rounded-lg text-xs font-extrabold border transition flex items-center justify-center gap-0.5 bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50">
+                      <span>☐ 1</span>
+                    </button>
+                    <button type="button" data-opt="2" onclick="setLiquidOrStock('detergentStock', '2')" class="btn-press py-2 rounded-lg text-xs font-extrabold border transition flex items-center justify-center gap-0.5 bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50">
+                      <span>☐ 2</span>
+                    </button>
+                    <button type="button" data-opt="3" onclick="setLiquidOrStock('detergentStock', '3')" class="btn-press py-2 rounded-lg text-xs font-extrabold border transition flex items-center justify-center gap-0.5 bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50">
+                      <span>☐ 3</span>
+                    </button>
                   </div>
                 </div>
 
@@ -390,7 +382,15 @@
                     <span id="badge-wax-stock" class="text-[10px] font-bold text-slate-500">未選</span>
                   </div>
                   <div class="grid grid-cols-3 gap-1.5" id="group-wax-stock">
-                    <!-- 由 JS 動態生成 1, 2, 3 按鈕 -->
+                    <button type="button" data-opt="1" onclick="setLiquidOrStock('waxStock', '1')" class="btn-press py-2 rounded-lg text-xs font-extrabold border transition flex items-center justify-center gap-0.5 bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50">
+                      <span>☐ 1</span>
+                    </button>
+                    <button type="button" data-opt="2" onclick="setLiquidOrStock('waxStock', '2')" class="btn-press py-2 rounded-lg text-xs font-extrabold border transition flex items-center justify-center gap-0.5 bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50">
+                      <span>☐ 2</span>
+                    </button>
+                    <button type="button" data-opt="3" onclick="setLiquidOrStock('waxStock', '3')" class="btn-press py-2 rounded-lg text-xs font-extrabold border transition flex items-center justify-center gap-0.5 bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50">
+                      <span>☐ 3</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1352,8 +1352,7 @@
             <button type="button" onclick="setLiquidOrStock('detergentLevel', '${opt}')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 ${
               active ? activeCls : 'bg-white text-slate-700 border-slate-300 hover:bg-sky-50'
             }">
-              <i class="ph-bold ${active ? 'ph-check-square' : 'ph-square'} text-sm"></i>
-              <span>${opt}</span>
+              <span>${active ? '☑' : '☐'} ${opt}</span>
             </button>
           `;
         }).join('');
@@ -1387,8 +1386,7 @@
             <button type="button" onclick="setLiquidOrStock('waxLevel', '${opt}')" class="btn-press py-2 px-1 rounded-xl text-xs font-extrabold border transition flex items-center justify-center gap-1 ${
               active ? activeCls : 'bg-white text-slate-700 border-slate-300 hover:bg-indigo-50'
             }">
-              <i class="ph-bold ${active ? 'ph-check-square' : 'ph-square'} text-sm"></i>
-              <span>${opt}</span>
+              <span>${active ? '☑' : '☐'} ${opt}</span>
             </button>
           `;
         }).join('');
@@ -1411,8 +1409,7 @@
                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                 : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50'
             }">
-              <i class="ph-bold ${active ? 'ph-check-circle' : 'ph-circle'} text-xs"></i>
-              <span>${num}</span>
+              <span>${active ? '☑' : '☐'} ${num}</span>
             </button>
           `;
         }).join('');
@@ -1435,8 +1432,7 @@
                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                 : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-emerald-50'
             }">
-              <i class="ph-bold ${active ? 'ph-check-circle' : 'ph-circle'} text-xs"></i>
-              <span>${num}</span>
+              <span>${active ? '☑' : '☐'} ${num}</span>
             </button>
           `;
         }).join('');
