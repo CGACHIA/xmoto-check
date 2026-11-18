@@ -1,0 +1,2285 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1E3A5F" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="XMOTO巡檢" />
+  <title>XMOTO 設備保修巡檢系統 (89項) - 分權資料庫版</title>
+
+  <!-- 載入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 載入 Google Fonts: Noto Sans TC & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <!-- 載入 Phosphor Icons 工業圖示庫 -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              DEFAULT: '#1E3A5F',
+              dark: '#142842',
+              light: '#2C5282',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #E2E8F0;
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: contain;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .btn-press:active {
+      transform: scale(0.97);
+    }
+
+    mark.search-hl {
+      background-color: #FEF08A;
+      color: #854D0E;
+      padding: 0 2px;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased">
+
+  <!-- 手機版 PWA / APK 主容器 -->
+  <div id="app-shell" class="mx-auto min-h-screen max-w-[540px] bg-slate-50 shadow-2xl relative pb-32 flex flex-col">
+
+    <!-- 修訂模式提示橫幅 (僅在編輯已送出單據時顯示) -->
+    <div id="revision-banner" class="hidden sticky top-0 z-40 bg-amber-500 text-slate-950 px-3.5 py-2 flex items-center justify-between gap-2 shadow-md">
+      <div class="flex items-center gap-2 min-w-0">
+        <i class="ph-bold ph-pencil-simple-line text-lg shrink-0"></i>
+        <div class="text-xs font-bold truncate">
+          修訂模式：正在修改 <span id="rev-banner-id" class="font-mono underline">XM-20261118-001</span>
+        </div>
+      </div>
+      <button type="button" onclick="exitRevisionMode()" class="shrink-0 px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[11px] font-bold">
+        退出修訂 / 開新單
+      </button>
+    </div>
+
+    <!-- 1. 固定頂部儀表板 Header -->
+    <header class="sticky top-0 z-30 bg-[#1E3A5F] text-white shadow-lg rounded-b-2xl">
+      <div class="px-3.5 pt-3 pb-2.5">
+        <!-- 頂部品牌與功能按鈕列 -->
+        <div class="flex items-center justify-between gap-1.5 mb-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="w-8 h-8 rounded-xl bg-[#2C5282] border border-blue-400/30 flex items-center justify-center shrink-0">
+              <i class="ph-bold ph-wrench text-lg text-sky-300"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-200 border border-sky-400/30">XMOTO 經銷</span>
+                <button type="button" onclick="openSettingsModal()" id="conn-status-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-400/40 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  <span>離線模擬模式</span>
+                </button>
+              </div>
+              <h1 class="text-sm sm:text-base font-bold tracking-tight truncate mt-0.5">XMOTO 設備保修巡檢系統</h1>
+            </div>
+          </div>
+
+          <!-- 右上角工具列：雲端設定 / 已送出紀錄 / 重設正常 -->
+          <div class="flex items-center gap-1 shrink-0">
+            <button type="button" onclick="openSettingsModal()" class="btn-press py-1.5 px-2 rounded-xl bg-[#2C5282] hover:bg-blue-700 text-sky-100 text-[11px] font-bold flex items-center gap-1 border border-white/15" title="設定 Google Apps Script 雲端連線網址">
+              <i class="ph-bold ph-gear text-sm"></i>
+              <span class="hidden sm:inline">雲端設定</span>
+            </button>
+
+            <button type="button" onclick="openHistoryModal()" class="btn-press py-1.5 px-2 rounded-xl bg-sky-500/25 hover:bg-sky-500/35 text-sky-100 text-[11px] font-bold flex items-center gap-1 border border-sky-300/30 relative">
+              <i class="ph-bold ph-clock-counter-clockwise text-sm"></i>
+              <span>紀錄</span>
+              <span id="history-count-badge" class="hidden ml-0.5 px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[10px] font-extrabold">0</span>
+            </button>
+
+            <button type="button" onclick="confirmResetAllNormal()" class="btn-press py-1.5 px-2 rounded-xl bg-[#2C5282] hover:bg-blue-700 text-white text-[11px] font-bold flex items-center gap-1 border border-white/15" title="將全部 89 項重設為正常">
+              <i class="ph-bold ph-arrow-counter-clockwise text-sm"></i>
+              <span>重設</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 妥善率與進度條 (預設 89/89 正常，妥善率 100.0%) -->
+        <div class="mb-2">
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="text-slate-200">
+              狀態：<strong id="stat-ok-summary" class="text-emerald-300">89 / 89 正常</strong>
+            </span>
+            <span class="text-sky-200 font-semibold">
+              妥善率：<strong id="stat-health" class="text-white text-sm">100.0%</strong>
+            </span>
+          </div>
+          <div class="w-full h-2 bg-[#142842] rounded-full overflow-hidden flex">
+            <div id="bar-ok" class="h-full bg-emerald-400 transition-all duration-300" style="width: 100%"></div>
+            <div id="bar-warn" class="h-full bg-amber-400 transition-all duration-300" style="width: 0%"></div>
+            <div id="bar-err" class="h-full bg-rose-500 transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- 數據統計膠囊 -->
+        <div class="grid grid-cols-4 gap-1.5 text-center mb-2">
+          <div class="bg-[#142842]/90 rounded-xl py-1 px-1 border border-white/10">
+            <div class="text-[10px] text-slate-300">正常</div>
+            <div id="stat-ok" class="text-sm font-bold text-emerald-400">89</div>
+          </div>
+          <div class="bg-[#142842]/90 rounded-xl py-1 px-1 border border-white/10">
+            <div class="text-[10px] text-slate-300">異常</div>
+            <div id="stat-err" class="text-sm font-bold text-rose-400">0</div>
+          </div>
+          <div class="bg-[#142842]/90 rounded-xl py-1 px-1 border border-white/10">
+            <div class="text-[10px] text-slate-300">待觀察</div>
+            <div id="stat-warn" class="text-sm font-bold text-amber-400">0</div>
+          </div>
+          <div class="bg-[#142842]/90 rounded-xl py-1 px-1 border border-white/10">
+            <div class="text-[10px] text-slate-300">現場照片</div>
+            <div id="stat-photos" class="text-sm font-bold text-sky-300">0</div>
+          </div>
+        </div>
+
+        <!-- 主分頁切換器：分頁一 (89項設備點檢) vs 分頁二 (現場拍照上傳) -->
+        <div class="grid grid-cols-2 gap-1.5 bg-[#142842] p-1 rounded-xl">
+          <button type="button" onclick="switchTab('checklist')" id="tab-btn-checklist" class="py-2 px-2 rounded-lg text-xs font-bold bg-white text-[#1E3A5F] shadow flex items-center justify-center gap-1.5 transition">
+            <i class="ph-bold ph-list-checks text-base"></i>
+            <span>89項設備點檢</span>
+          </button>
+          <button type="button" onclick="switchTab('camera')" id="tab-btn-camera" class="py-2 px-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition">
+            <i class="ph-bold ph-camera text-base"></i>
+            <span>現場拍照上傳 (<span id="tab-photo-count">0</span>)</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===================================================================== -->
+    <!-- 分頁一：89項設備點檢 (預設全正常 + 即時關鍵字快速搜尋) -->
+    <!-- ===================================================================== -->
+    <div id="view-checklist" class="flex-1 flex flex-col">
+
+      <!-- 黏性即時關鍵字搜尋列 -->
+      <div class="sticky top-[186px] z-20 bg-slate-100/95 backdrop-blur-md px-3.5 pt-2.5 pb-2 border-b border-slate-200 shadow-xs">
+        <div class="relative">
+          <i class="ph-bold ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2C5282] text-lg"></i>
+          <input
+            type="text"
+            id="search-input"
+            oninput="handleSearchInput(this.value)"
+            placeholder="輸入關鍵字快速搜尋（如：水刀、風機、皮帶、感知器、幫浦...）"
+            class="w-full bg-white border-2 border-[#2C5282]/40 focus:border-[#1E3A5F] text-slate-900 text-xs sm:text-sm rounded-xl pl-10 pr-9 py-2.5 shadow-xs focus:outline-none font-medium"
+          />
+          <button
+            type="button"
+            id="search-clear-btn"
+            onclick="clearSearch()"
+            class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs font-bold"
+            title="清除搜尋"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- 快速篩選膠囊列 -->
+        <div class="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar">
+          <button type="button" onclick="setFilter('all')" id="pill-all" class="filter-pill shrink-0 px-3 py-1 rounded-full text-xs font-bold bg-[#1E3A5F] text-white">
+            全部 (89)
+          </button>
+          <button type="button" onclick="setFilter('issue')" id="pill-issue" class="filter-pill shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-white text-slate-600 border border-slate-300">
+            異常 / 觀察 (<span id="pill-issue-num">0</span>)
+          </button>
+          <button type="button" onclick="setFilter('photo')" id="pill-photo" class="filter-pill shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-white text-slate-600 border border-slate-300">
+            已附照片 (<span id="pill-photo-num">0</span>)
+          </button>
+          <button type="button" onclick="toggleAllSystems()" id="btn-expand-all" class="ml-auto shrink-0 text-[11px] font-bold text-[#2C5282] underline px-1">
+            全部展開
+          </button>
+        </div>
+      </div>
+
+      <!-- 巡檢基本資料卡片 -->
+      <main class="flex-1 px-3.5 pt-3 space-y-3">
+        <section id="meta-card" class="bg-white rounded-2xl p-3.5 shadow-xs border border-slate-200">
+          <div class="flex items-center justify-between mb-2.5 pb-1.5 border-b border-slate-100">
+            <h2 class="text-xs font-bold text-[#1E3A5F] flex items-center gap-1.5">
+              <i class="ph-fill ph-storefront text-base text-[#2C5282]"></i>
+              全台經銷門市選擇與基本資料
+            </h2>
+            <span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-200">
+              全台 53 家經銷已建置
+            </span>
+          </div>
+
+          <div class="space-y-3">
+            <!-- 1. 北中南東四區域分段選擇器 -->
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1.5">選擇經銷區域 <span class="text-rose-500">*</span></label>
+              <div class="grid grid-cols-4 gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200" id="region-tabs">
+                <button type="button" onclick="selectRegion('北部地區')" data-region="北部地區" class="region-tab py-2 px-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+                  北區 <span class="text-[10px] opacity-80">(27)</span>
+                </button>
+                <button type="button" onclick="selectRegion('中部地區')" data-region="中部地區" class="region-tab py-2 px-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+                  中區 <span class="text-[10px] opacity-80">(9)</span>
+                </button>
+                <button type="button" onclick="selectRegion('南部地區')" data-region="南部地區" class="region-tab py-2 px-1 rounded-lg text-xs font-bold transition bg-[#1E3A5F] text-white shadow-xs">
+                  南區 <span class="text-[10px] opacity-80">(16)</span>
+                </button>
+                <button type="button" onclick="selectRegion('東部地區')" data-region="東部地區" class="region-tab py-2 px-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+                  東區 <span class="text-[10px] opacity-80">(1)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. 該區域經銷門市名稱下拉選單 (依縣市分組) -->
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">經銷門市名稱 <span class="text-rose-500">*</span></label>
+              <select id="store-select" onchange="handleStoreSelect()" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2C5282] font-bold">
+                <!-- 由 JS 依所選區域動態生成 -->
+              </select>
+            </div>
+
+            <!-- 3. 經銷地址卡片 (點擊直接開啟 Google Map 地址導航) -->
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">經銷地址（點擊直接開啟 Google Maps 導航）</label>
+              <a
+                id="store-address-link"
+                href="https://www.google.com/maps/search/?api=1&query=%E9%AB%98%E9%9B%84%E5%B8%82%E5%B7%A6%E7%87%9F%E5%8D%80%E8%87%B3%E8%81%96%E8%B7%AF%20147%20%E8%99%9F"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-press block w-full bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200 rounded-xl p-2.5 transition group"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-start gap-2 min-w-0">
+                    <div class="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                      <i class="ph-fill ph-map-pin text-base"></i>
+                    </div>
+                    <div class="min-w-0">
+                      <div id="store-address-text" class="text-xs sm:text-sm font-bold text-slate-800 leading-snug break-words">
+                        高雄市左營區至聖路 147 號
+                      </div>
+                      <div class="text-[10px] text-blue-700 font-medium mt-0.5">
+                        開啟 Google Maps 導航
+                      </div>
+                    </div>
+                  </div>
+                  <span class="shrink-0 px-2.5 py-1.5 rounded-lg bg-blue-600 group-hover:bg-blue-700 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs">
+                    <span>導航</span>
+                    <i class="ph-bold ph-arrow-up-right text-xs"></i>
+                  </span>
+                </div>
+              </a>
+            </div>
+
+            <!-- 4. 經銷編號 (自動帶入 ID_CODE) + 點檢日期 -->
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">經銷編號 (ID CODE)</label>
+                <div class="relative flex items-center">
+                  <input
+                    type="text"
+                    id="dealer-code-input"
+                    value="SK01"
+                    readonly
+                    class="w-full bg-slate-100 border border-slate-300 text-[#1E3A5F] text-xs sm:text-sm rounded-xl px-3 py-2 font-mono font-extrabold tracking-wider select-all cursor-default"
+                  />
+                  <span class="absolute right-2.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">自動帶入</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">點檢日期</label>
+                <input type="date" id="inspect-date" value="2026-11-18" onchange="saveMeta()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2" />
+              </div>
+
+              <div class="col-span-2">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">點檢技師姓名 <span class="text-rose-500">*</span></label>
+                <input type="text" id="inspector-name" oninput="saveMeta()" placeholder="請輸入現場維保技師姓名" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2C5282]" />
+              </div>
+            </div>
+
+            <!-- 5. 即時雲端分權資料庫目標路徑預覽條 -->
+            <div class="bg-slate-900 text-slate-200 rounded-xl px-3 py-2 text-[11px] font-mono flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <i class="ph-fill ph-folder-notch-open text-amber-400 text-base shrink-0"></i>
+              <span class="text-slate-400 shrink-0">歸檔路徑:</span>
+              <span id="live-archive-path" class="text-sky-300 font-bold whitespace-nowrap">分權資料庫 / 南區 / 高雄至聖總店 / 20261118</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 搜尋結果統計提示 -->
+        <div id="search-status-bar" class="hidden bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center justify-between text-xs text-amber-900">
+          <span>搜尋「<strong id="search-term-display"></strong>」共找到 <strong id="search-match-count">0</strong> 項設備</span>
+          <button type="button" onclick="clearSearch()" class="font-bold text-amber-700 underline">顯示全部</button>
+        </div>
+
+        <!-- 10 大系統與 89 項設備容器 -->
+        <div id="systems-container" class="space-y-3"></div>
+
+        <!-- 無符合項目空狀態 -->
+        <div id="empty-filter-state" class="hidden text-center py-10 px-4 bg-white rounded-2xl border border-slate-200">
+          <i class="ph-duotone ph-magnifying-glass text-4xl text-slate-400 mb-2"></i>
+          <p class="text-sm font-bold text-slate-700">找不到符合條件的設備項目</p>
+          <p class="text-xs text-slate-400 mt-1">請嘗試更換搜尋關鍵字，或切換回「全部 (89)」</p>
+          <button type="button" onclick="resetSearchAndFilter()" class="mt-3 px-4 py-2 bg-[#1E3A5F] text-white text-xs font-bold rounded-xl">顯示全部 89 項</button>
+        </div>
+      </main>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 分頁二：現場拍照上傳次頁 (連接手機相機拍攝 / 相簿選取 / 綁定項目) -->
+    <!-- ===================================================================== -->
+    <div id="view-camera" class="hidden flex-1 px-3.5 pt-4 space-y-4">
+
+      <!-- 相機拍攝與上傳操作卡片 -->
+      <section class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3.5">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div>
+            <h2 class="text-sm font-bold text-[#1E3A5F] flex items-center gap-1.5">
+              <i class="ph-fill ph-camera text-lg text-[#2C5282]"></i>
+              現場相機拍攝與照片上傳
+            </h2>
+            <p class="text-[11px] text-slate-500 mt-0.5">拍攝後自動壓縮並依標準格式命名歸檔至分權資料庫</p>
+          </div>
+          <span class="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-bold" id="cam-store-badge">SK01 高雄至聖總店</span>
+        </div>
+
+        <!-- 步驟 1：選擇照片對應的設備項目 -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">1. 選擇照片對應設備項目（可輸入關鍵字篩選選單）</label>
+          <input
+            type="text"
+            id="cam-item-filter"
+            oninput="filterCameraItemSelect(this.value)"
+            placeholder="輸入關鍵字縮小下方選單（如：水刀、風機、皮帶...）"
+            class="w-full mb-1.5 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#2C5282]"
+          />
+          <select id="cam-target-item" class="w-full bg-blue-50/60 border border-[#2C5282]/40 text-slate-900 text-xs sm:text-sm rounded-xl px-3 py-2.5 font-semibold focus:outline-none focus:ring-2 focus:ring-[#2C5282]">
+            <!-- 由 JS 動態生成：門市總覽照片 + 89 項清單 -->
+          </select>
+        </div>
+
+        <!-- 步驟 2：照片說明備註 -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">2. 現場照片說明備註（選填）</label>
+          <input
+            type="text"
+            id="cam-photo-caption"
+            placeholder="例：右龍門黑色水刀接頭輕微滲水、壓力錶指針 80kg..."
+            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2C5282]"
+          />
+        </div>
+
+        <!-- 步驟 3：兩大觸控拍照/選圖按鈕 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          <!-- 開啟手機相機直接拍攝 -->
+          <label class="btn-press cursor-pointer py-3.5 px-4 rounded-xl bg-[#1E3A5F] hover:bg-[#142842] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md">
+            <i class="ph-bold ph-camera text-xl text-sky-300"></i>
+            <span>開啟手機相機拍攝照片</span>
+            <input type="file" accept="image/*" capture="environment" onchange="handleSubpagePhotoCapture(event)" class="hidden" />
+          </label>
+
+          <!-- 從手機相簿批次選擇 -->
+          <label class="btn-press cursor-pointer py-3.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1E3A5F] border border-slate-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2">
+            <i class="ph-bold ph-images text-xl text-[#2C5282]"></i>
+            <span>從手機相簿選擇照片</span>
+            <input type="file" accept="image/*" multiple onchange="handleSubpagePhotoCapture(event)" class="hidden" />
+          </label>
+        </div>
+      </section>
+
+      <!-- 已拍攝 / 待上傳現場照片總覽牆 -->
+      <section class="space-y-2.5">
+        <div class="flex items-center justify-between px-1">
+          <h3 class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <i class="ph-fill ph-folder-image text-base text-[#2C5282]"></i>
+            已拍攝現場照片清單 (<span id="gallery-count">0</span> 張)
+          </h3>
+          <span class="text-[11px] text-slate-400">與點檢表單即時同步</span>
+        </div>
+
+        <div id="camera-gallery-list" class="space-y-3">
+          <!-- 由 JS 渲染所有照片卡片 -->
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 底部固定送出操作列 -->
+    <footer class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[540px] z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3.5 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-t-2xl">
+      <div class="flex gap-2">
+        <button type="button" onclick="switchTab(appState.activeTab === 'checklist' ? 'camera' : 'checklist')" class="btn-press py-3 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1E3A5F] font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-300 shrink-0">
+          <i id="footer-switch-icon" class="ph-bold ph-camera text-base"></i>
+          <span id="footer-switch-text">拍照上傳</span>
+        </button>
+
+        <button type="button" onclick="submitInspection()" id="btn-submit-main" class="btn-press flex-1 py-3 px-4 rounded-xl bg-[#1E3A5F] hover:bg-[#142842] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md disabled:opacity-60">
+          <i id="btn-submit-icon" class="ph-bold ph-cloud-arrow-up text-lg text-sky-300"></i>
+          <span id="btn-submit-label">送出並上傳分權資料庫</span>
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Toast 提示訊息 -->
+  <div id="toast-box" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-2">
+    <div class="bg-slate-900/95 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-xl flex items-center gap-2 border border-white/10">
+      <i id="toast-icon" class="ph-fill ph-info text-sky-400 text-base"></i>
+      <span id="toast-msg">提示訊息</span>
+    </div>
+  </div>
+
+  <!-- 雲端連線設定 Modal (設定 Google Apps Script 網頁應用程式網址) -->
+  <div id="settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/65 backdrop-blur-xs p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-blue-50 text-[#1E3A5F] flex items-center justify-center">
+            <i class="ph-bold ph-cloud-arrow-up text-xl"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">雲端連線設定（分權資料庫）</h3>
+            <p class="text-[11px] text-slate-500">貼上 Google Apps Script 部署網址即可啟用真實上傳</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeSettingsModal()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <label class="block text-xs font-bold text-slate-700">Google Apps Script Web App 網址 (.exec)</label>
+        <input
+          type="url"
+          id="gas-url-input"
+          placeholder="https://script.google.com/macros/s/XXXX/exec"
+          class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2C5282]"
+        />
+        <p class="text-[11px] text-slate-500 leading-relaxed">
+          • 填入後，點擊送出將直接把 89 項紀錄表與壓縮照片傳送至 <strong>分權資料庫 / [北/中/南/東區] / [經銷名稱] / [年月日]</strong>。<br/>
+          • 若留空則維持「離線展示模擬模式」，資料仍會完整保存在手機本地紀錄中。
+        </p>
+      </div>
+
+      <div id="gas-test-result" class="hidden text-xs p-2.5 rounded-xl border"></div>
+
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" onclick="testGasConnection()" class="btn-press py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5">
+          <i class="ph-bold ph-plugs-connected text-base"></i>
+          <span>測試網址格式</span>
+        </button>
+        <button type="button" onclick="saveGasUrl()" class="btn-press py-2.5 px-3 rounded-xl bg-[#1E3A5F] hover:bg-[#142842] text-white text-xs font-bold flex items-center justify-center gap-1.5">
+          <i class="ph-bold ph-floppy-disk text-base"></i>
+          <span>儲存連線設定</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 確認重設為全部正常 Modal -->
+  <div id="reset-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+    <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl border border-slate-200">
+      <div class="w-11 h-11 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-3">
+        <i class="ph-bold ph-arrow-counter-clockwise text-2xl"></i>
+      </div>
+      <h3 class="text-base font-bold text-slate-900">確定要全部重設為「正常」嗎？</h3>
+      <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+        這將會把全部 89 項恢復為預設「正常」狀態，並清除目前的異常備註與照片，開始一份全新的點檢單。
+      </p>
+      <div class="grid grid-cols-2 gap-2.5 mt-5">
+        <button type="button" onclick="closeResetModal()" class="py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200">取消</button>
+        <button type="button" onclick="executeResetAllNormal()" class="py-2.5 rounded-xl bg-[#1E3A5F] text-white text-xs font-bold hover:bg-[#142842]">確定重設為正常</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 送出成功 / 雲端歸檔報告 Modal (內建「返回修改此筆資料」功能) -->
+  <div id="archive-modal" class="fixed inset-0 z-50 hidden flex-col bg-slate-900/75 backdrop-blur-xs">
+    <div class="mx-auto w-full max-w-[540px] h-full flex flex-col bg-slate-50 shadow-2xl overflow-hidden">
+      <div class="bg-[#1E3A5F] text-white px-4 py-3.5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <i class="ph-fill ph-check-circle text-xl text-emerald-400"></i>
+          <div>
+            <h3 id="modal-title" class="text-sm font-bold">已送出並歸檔至分權資料庫</h3>
+            <p id="modal-subtitle" class="text-[11px] text-sky-200">單號：XM-20261118-001</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeArchiveModal()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div id="archive-modal-body" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+
+      <!-- 底部操作：返回修改此筆資料 + 匯出 + 開新巡檢單 -->
+      <div class="bg-white border-t border-slate-200 p-3.5 space-y-2 shrink-0">
+        <button type="button" id="modal-edit-btn" class="btn-press w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm">
+          <i class="ph-bold ph-pencil-simple-line text-lg"></i>
+          <span>返回修改此筆資料 (編輯並重新上傳)</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="exportCSV()" class="btn-press py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center justify-center gap-1.5">
+            <i class="ph-bold ph-file-csv text-base"></i>
+            <span>下載備份表 (CSV)</span>
+          </button>
+          <button type="button" onclick="startNewInspectionAfterSubmit()" class="btn-press py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold flex items-center justify-center gap-1.5">
+            <i class="ph-bold ph-plus-circle text-base"></i>
+            <span>完成並開新巡檢單</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 已送出紀錄歷史清單 Drawer / Modal (支援隨時調出修改) -->
+  <div id="history-modal" class="fixed inset-0 z-50 hidden flex-col bg-slate-900/75 backdrop-blur-xs">
+    <div class="mx-auto w-full max-w-[540px] h-full flex flex-col bg-slate-50 shadow-2xl overflow-hidden">
+      <div class="bg-[#1E3A5F] text-white px-4 py-3.5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <i class="ph-bold ph-clock-counter-clockwise text-xl text-sky-300"></i>
+          <div>
+            <h3 class="text-sm font-bold">已送出巡檢紀錄（支援重新編輯修改）</h3>
+            <p class="text-[11px] text-sky-200">點選任一單據即可載入修改並重新上傳至分權資料庫</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeHistoryModal()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div id="history-list-body" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+
+      <div class="bg-white border-t border-slate-200 p-3.5 shrink-0">
+        <button type="button" onclick="closeHistoryModal()" class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold">
+          關閉視窗
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript 核心邏輯與完整 89 項資料庫 -->
+  <script>
+    // =========================================================================
+    // 0A. PWA 動態 Manifest 與 Service Worker 註冊 (支援封裝 Android APK / PWA 安裝)
+    // =========================================================================
+    (function initPwaSupport() {
+      try {
+        const manifest = {
+          name: 'XMOTO 設備保修巡檢系統 (89項)',
+          short_name: 'XMOTO巡檢',
+          start_url: './',
+          display: 'standalone',
+          background_color: '#1E3A5F',
+          theme_color: '#1E3A5F',
+          orientation: 'portrait',
+          icons: [
+            {
+              src: 'https://placehold.co/192x192/1E3A5F/FFFFFF?text=XMOTO',
+              sizes: '192x192',
+              type: 'image/png'
+            },
+            {
+              src: 'https://placehold.co/512x512/1E3A5F/FFFFFF?text=XMOTO',
+              sizes: '512x512',
+              type: 'image/png'
+            }
+          ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        const manifestUrl = URL.createObjectURL(manifestBlob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestUrl;
+        document.head.appendChild(link);
+
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+          const swCode = `
+            self.addEventListener('install', e => self.skipWaiting());
+            self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+            self.addEventListener('fetch', e => {});
+          `;
+          const swBlob = new Blob([swCode], { type: 'application/javascript' });
+          navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+        }
+      } catch (e) {
+        console.warn('PWA Manifest 初始化略過:', e);
+      }
+    })();
+
+    // =========================================================================
+    // 0B. 全台 53 家經銷門市 ID_CODE 對照總表 (北、中、南、東四區域，已移除 CN01 南投草屯店)
+    // =========================================================================
+    const REGION_FOLDER_MAP = {
+      '北部地區': '北區',
+      '中部地區': '中區',
+      '南部地區': '南區',
+      '東部地區': '東區'
+    };
+
+    const DEALERS_DATA = [
+      // 北部地區 (27 家)
+      { region: '北部地區', code: 'NK01', city: '基隆市', name: '基隆中正店', address: '基隆市中正區中正路 728 號' },
+      { region: '北部地區', code: 'NK02', city: '基隆市', name: '基隆信義東明店', address: '基隆市信義區東明路 177 號' },
+      { region: '北部地區', code: 'NT01', city: '新北市', name: '三重重新店', address: '新北市三重區重新路五段 565 號' },
+      { region: '北部地區', code: 'NT02', city: '新北市', name: '三重環河南店', address: '新北市三重區環河南路 256 號' },
+      { region: '北部地區', code: 'NT03', city: '新北市', name: '板橋民族店', address: '新北市板橋區民族路 279 號' },
+      { region: '北部地區', code: 'NT04', city: '新北市', name: '新北新莊店（新莊中正店）', address: '新北市新莊區中正路 407 號' },
+      { region: '北部地區', code: 'NT05', city: '新北市', name: '新莊迴龍店', address: '新北市新莊區中正路 891-29 號' },
+      { region: '北部地區', code: 'NT06', city: '新北市', name: '中和安樂店', address: '新北市中和區安樂路 13 號' },
+      { region: '北部地區', code: 'NT07', city: '新北市', name: '永和永貞店', address: '新北市永和區永貞路 70 巷 12 號' },
+      { region: '北部地區', code: 'NT08', city: '新北市', name: '泰山明志店', address: '新北市泰山區明志路二段 271 號' },
+      { region: '北部地區', code: 'NT09', city: '新北市', name: '新北樹林秀泰店', address: '新北市樹林區樹新路 139 號' },
+      { region: '北部地區', code: 'NT10', city: '新北市', name: '新北汐止店', address: '新北市汐止區中興路 14 號' },
+      { region: '北部地區', code: 'NY01', city: '桃園市', name: '中壢龍岡店（桃園龍岡店）', address: '桃園市中壢區龍岡路二段 135 號' },
+      { region: '北部地區', code: 'NY02', city: '桃園市', name: '平鎮義民店', address: '桃園市平鎮區義民路 230 號' },
+      { region: '北部地區', code: 'NY03', city: '桃園市', name: '平鎮中豐店', address: '桃園市平鎮區中豐路南勢二段 358 號' },
+      { region: '北部地區', code: 'NY04', city: '桃園市', name: '楊梅永美店', address: '桃園市楊梅區永美路 144 號' },
+      { region: '北部地區', code: 'NY05', city: '桃園市', name: '八德建國店', address: '桃園市八德區建國路 1013 號' },
+      { region: '北部地區', code: 'NH01', city: '新竹市', name: '北區水田店', address: '新竹市北區水田街 130 號' },
+      { region: '北部地區', code: 'NH02', city: '新竹市', name: '新竹西大店', address: '新竹市東區西大路 297 號' },
+      { region: '北部地區', code: 'NH03', city: '新竹市', name: '新竹寶山店', address: '新竹市東區寶山路 13 號' },
+      { region: '北部地區', code: 'NH04', city: '新竹市', name: '新竹竹中店', address: '新竹市東區光復路一段 28 號' },
+      { region: '北部地區', code: 'NH05', city: '新竹市', name: '新竹光復店', address: '新竹市東區光復路二段 122 / 124-1 號' },
+      { region: '北部地區', code: 'NC01', city: '新竹縣', name: '竹北中山店', address: '新竹縣竹北市中山路 268 號' },
+      { region: '北部地區', code: 'NC02', city: '新竹縣', name: '竹北華興店', address: '新竹縣竹北市華興街 278 號' },
+      { region: '北部地區', code: 'NC03', city: '新竹縣', name: '竹北嘉興店', address: '新竹縣竹北市嘉興路 199-6 號' },
+      { region: '北部地區', code: 'NC04', city: '新竹縣', name: '竹東東寧店', address: '新竹縣竹東鎮東寧路三段 188 號' },
+      { region: '北部地區', code: 'NC05', city: '新竹縣', name: '新豐新興店', address: '新竹縣新豐鄉新興路 335 號' },
+
+      // 中部地區 (9 家，已移除南投縣 CN01 南投草屯店)
+      { region: '中部地區', code: 'CM01', city: '苗栗縣', name: '苗栗龍山店（竹南龍山店）', address: '苗栗縣竹南鎮龍山路三段 250 號' },
+      { region: '中部地區', code: 'CM02', city: '苗栗縣', name: '頭份信東店', address: '苗栗縣頭份市信東路 255 號' },
+      { region: '中部地區', code: 'CT01', city: '台中市', name: '台中北屯店（北屯太原店）', address: '台中市北屯區太原路三段 842-2 號' },
+      { region: '中部地區', code: 'CT02', city: '台中市', name: '台中東區建成店', address: '台中市東區建成路 668 號' },
+      { region: '中部地區', code: 'CT03', city: '台中市', name: '台中西區公益店', address: '台中市西區公益路 160 號' },
+      { region: '中部地區', code: 'CT04', city: '台中市', name: '豐原中正店', address: '台中市豐原區中正路 524-1 號' },
+      { region: '中部地區', code: 'CC01', city: '彰化縣', name: '彰化中正店', address: '彰化縣彰化市中正路二段 133 號' },
+      { region: '中部地區', code: 'CC02', city: '彰化縣', name: '彰化彰美店', address: '彰化縣彰化市彰美路一段 281 號' },
+      { region: '中部地區', code: 'CC03', city: '彰化縣', name: '彰化員林店', address: '彰化縣員林市員林大道六段 199 號' },
+
+      // 南部地區 (16 家)
+      { region: '南部地區', code: 'SN01', city: '台南市', name: '台南公園店', address: '台南市北區公園路 409 號' },
+      { region: '南部地區', code: 'SN02', city: '台南市', name: '東區大同店', address: '台南市東區大同路二段 649 號' },
+      { region: '南部地區', code: 'SN03', city: '台南市', name: '新市仁愛店', address: '台南市新市區仁愛街 156-1 號' },
+      { region: '南部地區', code: 'SK01', city: '高雄市', name: '高雄至聖總店', address: '高雄市左營區至聖路 147 號' },
+      { region: '南部地區', code: 'SK02', city: '高雄市', name: '高雄華夏店', address: '高雄市左營區華夏路 588 號' },
+      { region: '南部地區', code: 'SK03', city: '高雄市', name: '左營介壽店', address: '高雄市左營區介壽路 253 號' },
+      { region: '南部地區', code: 'SK04', city: '高雄市', name: '高雄建工店', address: '高雄市三民區建工路 699 號' },
+      { region: '南部地區', code: 'SK05', city: '高雄市', name: '高雄大昌店', address: '高雄市三民區大昌二路 486 號' },
+      { region: '南部地區', code: 'SK06', city: '高雄市', name: '高雄後昌店', address: '高雄市楠梓區後昌路 1076 號' },
+      { region: '南部地區', code: 'SK07', city: '高雄市', name: '高雄三多店', address: '高雄市苓雅區三多一路 271 號 1 樓' },
+      { region: '南部地區', code: 'SK08', city: '高雄市', name: '高雄大社店', address: '高雄市大社區中正路 74-3 號' },
+      { region: '南部地區', code: 'SK09', city: '高雄市', name: '鳳山中正店（月半機車澡堂）', address: '高雄市鳳山區中正路 182 之 3 號' },
+      { region: '南部地區', code: 'SK10', city: '高雄市', name: '高雄大寮鳳屏店', address: '高雄市大寮區鳳屏一路 475 號' },
+      { region: '南部地區', code: 'SP01', city: '屏東縣', name: '屏東民生店', address: '屏東縣屏東市民生路 49-18 號' },
+      { region: '南部地區', code: 'SP02', city: '屏東縣', name: '屏東潮州店', address: '屏東縣潮州鎮延平路 272 號' },
+      { region: '南部地區', code: 'SP03', city: '屏東縣', name: '屏東恆春店', address: '屏東縣恆春鎮中正路 35 號' },
+
+      // 東部地區 (1 家)
+      { region: '東部地區', code: 'EI01', city: '宜蘭縣', name: '羅東中正店', address: '宜蘭縣羅東鎮中正路 192 號' }
+    ];
+
+    // =========================================================================
+    // 1. 完整 10 大系統與 89 項設備點檢資料定義
+    // =========================================================================
+    const SYSTEMS_DATA = [
+      {
+        id: 'sys-1',
+        title: '系統 1：人機控制與門簾系統',
+        icon: 'ph-monitor',
+        items: [
+          { no: 1, name: '人機螢幕檢查', standard: '螢幕顯示清晰、觸控靈敏、無報錯代碼' },
+          { no: 2, name: '門簾吊軌滑輪狀態', standard: '滑輪滾動順暢、無卡頓或軌道變形' },
+          { no: 3, name: '門簾輔助滑輪', standard: '輔助輪定位準確、無磨損脫落' },
+          { no: 4, name: '洗車機運轉燈', standard: '指示燈號正常亮起、無閃爍異常' },
+          { no: 5, name: '門簾感知器', standard: '感應靈敏度正常、遮斷反應即時' },
+          { no: 6, name: '洗車倉內led燈', standard: '燈具全亮無閃爍、燈殼無進水起霧' }
+        ]
+      },
+      {
+        id: 'sys-2',
+        title: '系統 2：右龍門機構與管線',
+        icon: 'ph-arrow-square-right',
+        items: [
+          { no: 7, name: '右龍門黑色水刀', standard: '噴嘴無堵塞、水柱扇面均勻無分岔' },
+          { no: 8, name: '右龍門銀色水刀', standard: '噴嘴無堵塞、高壓出水壓力穩定' },
+          { no: 9, name: '右龍門滑片墮輪', standard: '滑片與墮輪貼合順暢、無異常磨耗異音' },
+          { no: 10, name: '右龍門洗劑泡沫管銜接', standard: '接頭鎖緊無滲漏、管身無龜裂折損' },
+          { no: 11, name: '右龍門水蠟泡沫管銜接', standard: '接頭鎖緊無滲漏、管身無龜裂折損' },
+          { no: 12, name: '右龍門高壓水管銜接', standard: '高壓接頭無漏水、防爆層無鼓包' },
+          { no: 13, name: '右龍門啞管定位', standard: '固定座螺絲緊固、管路無晃動干涉' },
+          { no: 14, name: '右龍門下滑片', standard: '滑片軌道清潔無異物、滑動平穩' },
+          { no: 15, name: '右龍門感知器', standard: '定位與防撞感應正常、固定架無鬆動' },
+          { no: 16, name: '右龍門防撞隔板', standard: '隔板結構完整無變形、緩衝功能正常' }
+        ]
+      },
+      {
+        id: 'sys-3',
+        title: '系統 3：左龍門機構與管線',
+        icon: 'ph-arrow-square-left',
+        items: [
+          { no: 17, name: '左龍門黑色水刀', standard: '噴嘴無堵塞、水柱扇面均勻無分岔' },
+          { no: 18, name: '左龍門銀色水刀', standard: '噴嘴無堵塞、高壓出水壓力穩定' },
+          { no: 19, name: '左龍門滑片墮輪', standard: '滑片與墮輪貼合順暢、無異常磨耗異音' },
+          { no: 20, name: '左龍門洗劑泡沫管銜接', standard: '接頭鎖緊無滲漏、管身無龜裂折損' },
+          { no: 21, name: '左龍門水蠟泡沫管銜接', standard: '接頭鎖緊無滲漏、管身無龜裂折損' },
+          { no: 22, name: '左龍門高壓水管銜接', standard: '高壓接頭無漏水、防爆層無鼓包' },
+          { no: 23, name: '左龍門啞管定位', standard: '固定座螺絲緊固、管路無晃動干涉' },
+          { no: 24, name: '左龍門下滑片', standard: '滑片軌道清潔無異物、滑動平穩' },
+          { no: 25, name: '左龍門感知器', standard: '定位與防撞感應正常、固定架無鬆動' },
+          { no: 26, name: '左龍門防撞隔板', standard: '隔板結構完整無變形、緩衝功能正常' }
+        ]
+      },
+      {
+        id: 'sys-4',
+        title: '系統 4：洗車倉頂與風機系統',
+        icon: 'ph-fan',
+        items: [
+          { no: 27, name: '洗車倉天花板毛刷', standard: '刷毛無嚴重磨損糾結、旋轉軸承順暢' },
+          { no: 28, name: '洗車倉天花板平衡桿', standard: '桿身水平無變形、兩端連接件緊固' },
+          { no: 29, name: '右側風機', standard: '風機運轉平穩無異音、風量輸出正常' },
+          { no: 30, name: '右側風機管', standard: '風管無破損漏風、束環固定牢靠' },
+          { no: 31, name: '左側風機', standard: '風機運轉平穩無異音、風量輸出正常' },
+          { no: 32, name: '左側風機管', standard: '風管無破損漏風、束環固定牢靠' }
+        ]
+      },
+      {
+        id: 'sys-5',
+        title: '系統 5：移行馬達與傳動系統',
+        icon: 'ph-gear-six',
+        items: [
+          { no: 33, name: '移行馬達', standard: '馬達運轉順暢、外殼溫度無異常過熱' },
+          { no: 34, name: '移行馬達定位感知前', standard: '前限位感應精準、無位移鬆動' },
+          { no: 35, name: '移行馬達定位感知後', standard: '後限位感應精準、無位移鬆動' },
+          { no: 36, name: '移行馬達右側軌道', standard: '軌道表面清潔無異物、固定螺栓緊固' },
+          { no: 37, name: '移行馬達右側移動輪', standard: '輪體無偏磨裂痕、軸承轉動順暢' },
+          { no: 38, name: '移行馬達左側軌道', standard: '軌道表面清潔無異物、固定螺栓緊固' },
+          { no: 39, name: '移行馬達左側移動輪', standard: '輪體無偏磨裂痕、軸承轉動順暢' },
+          { no: 40, name: '移行馬達PLC控制線', standard: '線纜外皮無破損、端子排接線緊固' },
+          { no: 41, name: '移行馬達共通履帶', standard: '履帶張力適中、拖鏈活動順暢無卡滯' },
+          { no: 42, name: '移行馬達鏈條', standard: '鏈條張力正常、潤滑充足無生鏽跳齒' },
+          { no: 43, name: '左側風機PLC控制線', standard: '控制線接頭穩固、訊號傳輸無異常' },
+          { no: 44, name: '右側風機PLC控制線', standard: '控制線接頭穩固、訊號傳輸無異常' }
+        ]
+      },
+      {
+        id: 'sys-6',
+        title: '系統 6：泡沫與藥劑混合系統',
+        icon: 'ph-drop-half-bottom',
+        items: [
+          { no: 45, name: '泡沫分配管4條', standard: '4條管路出泡均勻、接頭無漏氣漏液' },
+          { no: 46, name: '泡沫分配共同輸出模組', standard: '模組密封良好、閥體切換作動正常' },
+          { no: 47, name: '洗劑混合液主泵', standard: '泵體運轉正常、無空轉或異常震動' },
+          { no: 48, name: '洗劑混合泵電源', standard: '供電穩定、接點無氧化發熱現象' },
+          { no: 49, name: '水蠟混合液主泵', standard: '泵體運轉正常、無空轉或異常震動' },
+          { no: 50, name: '水蠟混合泵電源', standard: '供電穩定、接點無氧化發熱現象' },
+          { no: 51, name: '空壓水氣分離器', standard: '濾杯無積水過滿、自動/手動排水正常' },
+          { no: 52, name: '空壓輸出指示錶', standard: '錶針顯示在標準工作氣壓範圍內' },
+          { no: 53, name: '混合泡沫逆止模組', standard: '單向止回功能正常、無藥劑倒流現象' },
+          { no: 54, name: '洗劑混合輸液管', standard: '管路通暢無折扁、接頭無滲液' },
+          { no: 55, name: '水蠟混合輸液管', standard: '管路通暢無折扁、接頭無滲液' }
+        ]
+      },
+      {
+        id: 'sys-7',
+        title: '系統 7：原液供給與水源系統',
+        icon: 'ph-waves',
+        items: [
+          { no: 56, name: '洗劑原液主泵', standard: '抽吸順暢、泵頭無結晶卡死或滲漏' },
+          { no: 57, name: '洗劑原液泵電源', standard: '電源指示正常、線路絕緣良好' },
+          { no: 58, name: '洗劑原液水源電磁閥', standard: '通電啟閉正常、無內漏或線圈過熱' },
+          { no: 59, name: '水蠟原液主泵', standard: '抽吸順暢、泵頭無滲漏或吸力衰退' },
+          { no: 60, name: '水蠟原液泵電源', standard: '電源指示正常、線路絕緣良好' },
+          { no: 61, name: '水蠟源液水源電磁閥', standard: '通電啟閉正常、無內漏或線圈過熱' },
+          { no: 62, name: '洗劑原液輸出管', standard: '管路無結晶阻塞、接頭緊固不滲漏' },
+          { no: 63, name: '水蠟原液輸出管', standard: '管路無結晶阻塞、接頭緊固不滲漏' },
+          { no: 64, name: '水源輸出泵', standard: '增壓運轉穩定、軸封無滴水現象' },
+          { no: 65, name: '水源輸出泵連通管', standard: '管件連接緊密、無震動鬆脫漏水' },
+          { no: 66, name: '水源分配管', standard: '各分路閥門標示清晰、無滲漏鏽蝕' },
+          { no: 67, name: '水源電磁閥', standard: '電磁閥啟閉迅速、無水錘異音或卡閥' },
+          { no: 68, name: '水箱設備箱', standard: '水箱水位正常、浮球閥作動靈敏、箱體無滲漏' }
+        ]
+      },
+      {
+        id: 'sys-8',
+        title: '系統 8：高壓噴霧機總成',
+        icon: 'ph-gauge',
+        items: [
+          { no: 69, name: '噴霧機黃油杯', standard: '黃油存量充足、定期旋緊注油潤滑' },
+          { no: 70, name: '噴霧機壓力旋鈕', standard: '調壓旋鈕轉動順暢、壓力鎖定有效' },
+          { no: 71, name: '噴霧機壓力釋放', standard: '卸壓閥作動正常、停機後能順利洩壓' },
+          { no: 72, name: '噴霧機壓力給予', standard: '加壓反應即時、能穩定達到設定工作壓力' },
+          { no: 73, name: '噴霧機壓力錶', standard: '錶面清晰無進水、指針穩定無劇烈抖動' },
+          { no: 74, name: '噴霧機活塞', standard: '陶瓷活塞表面光滑無刮傷、往復運動順暢' },
+          { no: 75, name: '噴霧機活塞油封', standard: '油封無老化硬化、曲軸箱無漏油跡象' },
+          { no: 76, name: '噴霧機機油', standard: '油位位於視窗標準刻線內、油質清澈無乳化' },
+          { no: 77, name: '噴霧機密水封密合', standard: '水封處無持續滴水或滲漏現象' },
+          { no: 78, name: '噴霧機回水', standard: '回水管路暢通、無異常高壓憋壓' },
+          { no: 79, name: '噴霧機皮帶', standard: '皮帶張力適中、無龜裂磨損或打滑異音' }
+        ]
+      },
+      {
+        id: 'sys-9',
+        title: '系統 9：主馬達與電氣檢測',
+        icon: 'ph-lightning',
+        items: [
+          { no: 80, name: '馬達運作狀態', standard: '馬達運轉平穩、散熱風扇正常無異常升溫' },
+          { no: 81, name: '馬達電容', standard: '電容外觀無鼓包漏液、啟動輔助正常' },
+          { no: 82, name: '馬達作動聲音', standard: '運轉聲響均勻沉穩、無軸承異音或摩擦聲' },
+          { no: 83, name: '電磁開關是否正常吸附', standard: '接點吸附確實、無抖動嗡鳴或燒灼痕跡' },
+          { no: 84, name: '馬達啟動電流', standard: '啟動瞬間電流峰值在額定安全範圍內' },
+          { no: 85, name: '馬達運作電流', standard: '負載運轉電流穩定、三相電流平衡無過載' }
+        ]
+      },
+      {
+        id: 'sys-10',
+        title: '系統 10：耗材庫存與門市周邊',
+        icon: 'ph-package',
+        items: [
+          { no: 86, name: '去汙劑庫存', standard: '確認桶內剩餘液位，建議低於 30% 即補貨' },
+          { no: 87, name: '水蠟庫存', standard: '確認桶內剩餘液位，建議低於 30% 即補貨' },
+          { no: 88, name: '電視輪播', standard: '門市廣告螢幕正常開機、輪播畫面流暢無當機' },
+          { no: 89, name: '監視器連線', standard: '各角度鏡頭畫面清晰、網路連線與錄影正常' }
+        ]
+      }
+    ];
+
+    const QUICK_TAGS = ['漏水滲液', '異音震動', '壓力不足', '管線鬆脫', '感知異常', '需補貨'];
+    const STORAGE_KEY = 'xmoto_89_draft_v4';
+    const HISTORY_KEY = 'xmoto_89_submitted_history_v4';
+    const GAS_URL_KEY = 'xmoto_gas_webapp_url_v1';
+
+    function createDefaultNormalRecords() {
+      const recs = {};
+      for (let i = 1; i <= 89; i++) {
+        recs[i] = {
+          status: 'normal', // 'normal' | 'abnormal' | 'watch'
+          note: '',
+          action: '',
+          drawerOpen: false
+        };
+      }
+      return recs;
+    }
+
+    let appState = {
+      editingRecordId: null,
+      revisionVersion: 1,
+      activeTab: 'checklist',
+      searchQuery: '',
+      filter: 'all',
+      expandedSystems: { 'sys-1': true },
+      meta: {
+        region: '南部地區',
+        dealerCode: 'SK01',
+        date: '2026-11-18',
+        inspector: ''
+      },
+      records: createDefaultNormalRecords(),
+      photos: []
+    };
+
+    let submittedHistory = [];
+    let gasWebAppUrl = '';
+
+    // =========================================================================
+    // 2. 狀態初始化與本地持久化
+    // =========================================================================
+    function getDealerByCode(code) {
+      return DEALERS_DATA.find(d => d.code === code) || DEALERS_DATA.find(d => d.code === 'SK01') || DEALERS_DATA[0];
+    }
+
+    function loadAllData() {
+      try {
+        gasWebAppUrl = localStorage.getItem(GAS_URL_KEY) || '';
+        const savedDraft = localStorage.getItem(STORAGE_KEY);
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          // 兼容舊版區域字串 ('北部' -> '北部地區')
+          if (parsed.meta && parsed.meta.region && !parsed.meta.region.endsWith('地區')) {
+            parsed.meta.region = parsed.meta.region + '地區';
+          }
+          appState = {
+            ...appState,
+            ...parsed,
+            meta: { ...appState.meta, ...(parsed.meta || {}) },
+            records: { ...createDefaultNormalRecords(), ...(parsed.records || {}) },
+            photos: parsed.photos || []
+          };
+        }
+        const savedHistory = localStorage.getItem(HISTORY_KEY);
+        if (savedHistory) {
+          submittedHistory = JSON.parse(savedHistory) || [];
+        }
+      } catch (e) {
+        console.warn('讀取本地資料失敗:', e);
+      }
+
+      syncMetaToDOM();
+      updateConnectionBadge();
+      updateRevisionBannerUI();
+      updateHistoryBadge();
+    }
+
+    function persistDraft() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        showToast('本地空間接近上限，建議立即送出歸檔', 'warn');
+      }
+    }
+
+    function persistHistory() {
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(submittedHistory));
+      } catch (e) {
+        showToast('歷史紀錄儲存空間已滿', 'warn');
+      }
+      updateHistoryBadge();
+    }
+
+    function updateConnectionBadge() {
+      const badge = document.getElementById('conn-status-badge');
+      if (gasWebAppUrl && gasWebAppUrl.startsWith('https://script.google.com/')) {
+        badge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-400/40 flex items-center gap-1';
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span><span>已連線分權資料庫</span>';
+      } else {
+        badge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-400/40 flex items-center gap-1';
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span>離線模擬模式</span>';
+      }
+    }
+
+    // 雲端連線設定 Modal 控制
+    function openSettingsModal() {
+      document.getElementById('gas-url-input').value = gasWebAppUrl;
+      document.getElementById('gas-test-result').classList.add('hidden');
+      const modal = document.getElementById('settings-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeSettingsModal() {
+      const modal = document.getElementById('settings-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function testGasConnection() {
+      const val = document.getElementById('gas-url-input').value.trim();
+      const box = document.getElementById('gas-test-result');
+      box.classList.remove('hidden');
+      if (!val) {
+        box.className = 'text-xs p-2.5 rounded-xl border bg-amber-50 border-amber-200 text-amber-800';
+        box.textContent = '目前網址為空，將使用「離線展示模擬模式」。';
+        return;
+      }
+      if (val.startsWith('https://script.google.com/macros/s/') && val.endsWith('/exec')) {
+        box.className = 'text-xs p-2.5 rounded-xl border bg-emerald-50 border-emerald-200 text-emerald-800 font-medium';
+        box.textContent = '✅ 網址格式驗證通過！請點擊「儲存連線設定」即可啟用雲端自動歸檔。';
+      } else {
+        box.className = 'text-xs p-2.5 rounded-xl border bg-rose-50 border-rose-200 text-rose-800 font-medium';
+        box.textContent = '⚠️ 網址格式不符，請確認貼上的是以 https://script.google.com/macros/s/ 開頭且以 /exec 結尾的網頁應用程式網址。';
+      }
+    }
+
+    function saveGasUrl() {
+      const val = document.getElementById('gas-url-input').value.trim();
+      gasWebAppUrl = val;
+      localStorage.setItem(GAS_URL_KEY, val);
+      updateConnectionBadge();
+      closeSettingsModal();
+      showToast(val ? '已儲存分權資料庫雲端連線網址！' : '已切換為離線展示模擬模式', 'ok');
+    }
+
+    // 渲染四區域 Tab 樣式與對應區域經銷門市清單 (依縣市分組)
+    function renderRegionAndStoreDropdown() {
+      const currentRegion = appState.meta.region || '南部地區';
+      document.querySelectorAll('.region-tab').forEach(btn => {
+        if (btn.dataset.region === currentRegion) {
+          btn.className = 'region-tab py-2 px-1 rounded-lg text-xs font-bold transition bg-[#1E3A5F] text-white shadow-xs';
+        } else {
+          btn.className = 'region-tab py-2 px-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        }
+      });
+
+      const regionDealers = DEALERS_DATA.filter(d => d.region === currentRegion);
+      const selectEl = document.getElementById('store-select');
+
+      const cityGroups = {};
+      regionDealers.forEach(d => {
+        if (!cityGroups[d.city]) cityGroups[d.city] = [];
+        cityGroups[d.city].push(d);
+      });
+
+      let html = '';
+      Object.keys(cityGroups).forEach(city => {
+        html += `<optgroup label="📍 ${city} (${cityGroups[city].length} 家)">`;
+        cityGroups[city].forEach(d => {
+          html += `<option value="${d.code}">[${d.code}] ${d.name}</option>`;
+        });
+        html += `</optgroup>`;
+      });
+
+      selectEl.innerHTML = html;
+
+      const existsInRegion = regionDealers.some(d => d.code === appState.meta.dealerCode);
+      if (!existsInRegion && regionDealers.length > 0) {
+        appState.meta.dealerCode = regionDealers[0].code;
+      }
+      selectEl.value = appState.meta.dealerCode;
+
+      updateSelectedDealerDetails();
+    }
+
+    function updateSelectedDealerDetails() {
+      const dealer = getDealerByCode(appState.meta.dealerCode);
+      const dateStr = (document.getElementById('inspect-date')?.value || appState.meta.date || '2026-11-18').replace(/-/g, '');
+      const regionShort = REGION_FOLDER_MAP[dealer.region] || '南區';
+
+      document.getElementById('dealer-code-input').value = dealer.code;
+      document.getElementById('store-address-text').textContent = dealer.address;
+      document.getElementById('store-address-link').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dealer.address)}`;
+      document.getElementById('cam-store-badge').textContent = `${dealer.code} ${dealer.name}`;
+      document.getElementById('live-archive-path').textContent = `分權資料庫 / ${regionShort} / ${dealer.name} / ${dateStr}`;
+    }
+
+    function syncMetaToDOM() {
+      document.getElementById('inspect-date').value = appState.meta.date || '2026-11-18';
+      document.getElementById('inspector-name').value = appState.meta.inspector || '';
+      renderRegionAndStoreDropdown();
+    }
+
+    function getActiveDealer() {
+      return getDealerByCode(appState.meta.dealerCode);
+    }
+
+    function getItemInfoByNo(itemNo) {
+      if (Number(itemNo) === 0) {
+        return { no: 0, name: '門市外觀與機台總覽', system: '現場總覽' };
+      }
+      for (const sys of SYSTEMS_DATA) {
+        const found = sys.items.find(it => it.no === Number(itemNo));
+        if (found) return { ...found, system: sys.title };
+      }
+      return { no: itemNo, name: '未知項目', system: '' };
+    }
+
+    function generatePhotoFilename(itemNo, itemName, idxSuffix = '') {
+      const dealer = getActiveDealer();
+      const dateStr = (appState.meta.date || '2026-11-18').replace(/-/g, '');
+      const storeStr = dealer.name.replace(/[\\/:*?"<>|\s]/g, '');
+      const noStr = String(itemNo).padStart(2, '0');
+      const cleanName = itemName.replace(/[\\/:*?"<>|\s]/g, '');
+      return `${dateStr}_${dealer.code}_${storeStr}_${noStr}${cleanName}${idxSuffix}.jpg`;
+    }
+
+    // =========================================================================
+    // 3. 分頁切換 (分頁一：89項設備點檢 / 分頁二：現場拍照上傳)
+    // =========================================================================
+    function switchTab(tabName) {
+      appState.activeTab = tabName;
+      const viewChecklist = document.getElementById('view-checklist');
+      const viewCamera = document.getElementById('view-camera');
+      const btnChecklist = document.getElementById('tab-btn-checklist');
+      const btnCamera = document.getElementById('tab-btn-camera');
+      const footerIcon = document.getElementById('footer-switch-icon');
+      const footerText = document.getElementById('footer-switch-text');
+
+      if (tabName === 'checklist') {
+        viewChecklist.classList.remove('hidden');
+        viewCamera.classList.add('hidden');
+
+        btnChecklist.className = 'py-2 px-2 rounded-lg text-xs font-bold bg-white text-[#1E3A5F] shadow flex items-center justify-center gap-1.5 transition';
+        btnCamera.className = 'py-2 px-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition';
+
+        footerIcon.className = 'ph-bold ph-camera text-base';
+        footerText.textContent = '拍照上傳';
+        renderSystems();
+      } else {
+        viewChecklist.classList.add('hidden');
+        viewCamera.classList.remove('hidden');
+
+        btnCamera.className = 'py-2 px-2 rounded-lg text-xs font-bold bg-white text-[#1E3A5F] shadow flex items-center justify-center gap-1.5 transition';
+        btnChecklist.className = 'py-2 px-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white flex items-center justify-center gap-1.5 transition';
+
+        footerIcon.className = 'ph-bold ph-list-checks text-base';
+        footerText.textContent = '返回點檢';
+        populateCameraItemSelect();
+        renderCameraGallery();
+      }
+      persistDraft();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // =========================================================================
+    // 4. 即時關鍵字搜尋與篩選邏輯
+    // =========================================================================
+    function handleSearchInput(val) {
+      appState.searchQuery = val.trim();
+      const clearBtn = document.getElementById('search-clear-btn');
+      if (appState.searchQuery.length > 0) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+      renderSystems();
+    }
+
+    function clearSearch() {
+      appState.searchQuery = '';
+      const input = document.getElementById('search-input');
+      input.value = '';
+      document.getElementById('search-clear-btn').classList.add('hidden');
+      renderSystems();
+    }
+
+    function resetSearchAndFilter() {
+      clearSearch();
+      setFilter('all');
+    }
+
+    function setFilter(filterType) {
+      appState.filter = filterType;
+      ['all', 'issue', 'photo'].forEach(key => {
+        const pill = document.getElementById(`pill-${key}`);
+        if (key === filterType) {
+          pill.className = 'filter-pill shrink-0 px-3 py-1 rounded-full text-xs font-bold bg-[#1E3A5F] text-white';
+        } else {
+          pill.className = 'filter-pill shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-white text-slate-600 border border-slate-300';
+        }
+      });
+      renderSystems();
+    }
+
+    function highlightText(text, query) {
+      if (!query) return text;
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${escaped})`, 'gi');
+      return text.replace(regex, '<mark class="search-hl">$1</mark>');
+    }
+
+    // =========================================================================
+    // 5. 89 項點檢操作與統計更新
+    // =========================================================================
+    function selectRegion(regionName) {
+      appState.meta.region = regionName;
+      renderRegionAndStoreDropdown();
+      persistDraft();
+      renderSystems();
+    }
+
+    function handleStoreSelect() {
+      appState.meta.dealerCode = document.getElementById('store-select').value;
+      updateSelectedDealerDetails();
+      persistDraft();
+      renderSystems();
+    }
+
+    function saveMeta() {
+      appState.meta.date = document.getElementById('inspect-date').value;
+      appState.meta.inspector = document.getElementById('inspector-name').value;
+      updateSelectedDealerDetails();
+      persistDraft();
+    }
+
+    function toggleSystem(sysId) {
+      appState.expandedSystems[sysId] = !appState.expandedSystems[sysId];
+      persistDraft();
+      renderSystems();
+    }
+
+    function toggleAllSystems() {
+      const anyClosed = SYSTEMS_DATA.some(s => !appState.expandedSystems[s.id]);
+      SYSTEMS_DATA.forEach(s => {
+        appState.expandedSystems[s.id] = anyClosed;
+      });
+      document.getElementById('btn-expand-all').textContent = anyClosed ? '全部收合' : '全部展開';
+      persistDraft();
+      renderSystems();
+    }
+
+    function setItemStatus(itemNo, newStatus) {
+      const current = appState.records[itemNo] || { status: 'normal', note: '', action: '', drawerOpen: false };
+      const shouldOpen = (newStatus === 'abnormal' || newStatus === 'watch') ? true : current.drawerOpen;
+
+      appState.records[itemNo] = {
+        ...current,
+        status: newStatus,
+        drawerOpen: shouldOpen
+      };
+
+      persistDraft();
+      updateStats();
+      renderSystems();
+    }
+
+    function toggleItemDrawer(itemNo) {
+      const current = appState.records[itemNo] || { status: 'normal', note: '', action: '', drawerOpen: false };
+      appState.records[itemNo] = {
+        ...current,
+        drawerOpen: !current.drawerOpen
+      };
+      persistDraft();
+      renderSystems();
+    }
+
+    function updateItemField(itemNo, field, val) {
+      const current = appState.records[itemNo] || { status: 'normal', note: '', action: '', drawerOpen: true };
+      current[field] = val;
+      appState.records[itemNo] = current;
+      persistDraft();
+    }
+
+    function appendQuickTag(itemNo, tag) {
+      const current = appState.records[itemNo] || { status: 'normal', note: '', action: '', drawerOpen: true };
+      const existing = (current.note || '').trim();
+      if (!existing.includes(tag)) {
+        current.note = existing ? `${existing}、${tag}` : tag;
+        appState.records[itemNo] = current;
+        persistDraft();
+        renderSystems();
+      }
+    }
+
+    function updateStats() {
+      let okCount = 0;
+      let errCount = 0;
+      let warnCount = 0;
+
+      for (let i = 1; i <= 89; i++) {
+        const st = appState.records[i]?.status || 'normal';
+        if (st === 'normal') okCount++;
+        else if (st === 'abnormal') errCount++;
+        else if (st === 'watch') warnCount++;
+      }
+
+      const photoCount = appState.photos.length;
+      const itemsWithPhotoSet = new Set(appState.photos.filter(p => p.itemNo > 0).map(p => Number(p.itemNo)));
+      const healthPct = ((okCount / 89) * 100).toFixed(1);
+
+      document.getElementById('stat-ok').textContent = okCount;
+      document.getElementById('stat-err').textContent = errCount;
+      document.getElementById('stat-warn').textContent = warnCount;
+      document.getElementById('stat-photos').textContent = photoCount;
+      document.getElementById('tab-photo-count').textContent = photoCount;
+
+      document.getElementById('stat-ok-summary').textContent = `${okCount} / 89 正常`;
+      document.getElementById('stat-health').textContent = `${healthPct}%`;
+
+      document.getElementById('pill-issue-num').textContent = errCount + warnCount;
+      document.getElementById('pill-photo-num').textContent = itemsWithPhotoSet.size;
+
+      document.getElementById('bar-ok').style.width = `${(okCount / 89) * 100}%`;
+      document.getElementById('bar-warn').style.width = `${(warnCount / 89) * 100}%`;
+      document.getElementById('bar-err').style.width = `${(errCount / 89) * 100}%`;
+    }
+
+    function renderSystems() {
+      const container = document.getElementById('systems-container');
+      container.innerHTML = '';
+
+      const query = appState.searchQuery.toLowerCase();
+      let totalMatchedItems = 0;
+
+      SYSTEMS_DATA.forEach(sys => {
+        let sysErr = 0;
+        let sysWarn = 0;
+
+        sys.items.forEach(item => {
+          const st = appState.records[item.no]?.status || 'normal';
+          if (st === 'abnormal') sysErr++;
+          if (st === 'watch') sysWarn++;
+        });
+
+        const filteredItems = sys.items.filter(item => {
+          const rec = appState.records[item.no] || { status: 'normal' };
+          const itemPhotos = appState.photos.filter(p => Number(p.itemNo) === item.no);
+
+          if (appState.filter === 'issue' && rec.status !== 'abnormal' && rec.status !== 'watch') {
+            return false;
+          }
+          if (appState.filter === 'photo' && itemPhotos.length === 0) {
+            return false;
+          }
+
+          if (query) {
+            const noStr = String(item.no).padStart(2, '0');
+            const haystack = `${noStr} ${item.name} ${item.standard} ${sys.title}`.toLowerCase();
+            return haystack.includes(query);
+          }
+
+          return true;
+        });
+
+        if (filteredItems.length === 0) return;
+        totalMatchedItems += filteredItems.length;
+
+        const isExpanded = (query.length > 0 || appState.filter !== 'all')
+          ? true
+          : !!appState.expandedSystems[sys.id];
+
+        let cardBorder = 'border-slate-200';
+        if (sysErr > 0) cardBorder = 'border-rose-300 ring-1 ring-rose-200';
+        else if (sysWarn > 0) cardBorder = 'border-amber-300';
+
+        const card = document.createElement('div');
+        card.className = `bg-white rounded-2xl shadow-xs border ${cardBorder} overflow-hidden`;
+
+        card.innerHTML = `
+          <div onclick="toggleSystem('${sys.id}')" class="px-3.5 py-3 bg-slate-50 hover:bg-slate-100/80 cursor-pointer flex items-center justify-between gap-2 select-none">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-xl ${sysErr > 0 ? 'bg-rose-100 text-rose-600' : sysWarn > 0 ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-700'} flex items-center justify-center shrink-0">
+                <i class="ph-bold ${sys.icon} text-lg"></i>
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-xs sm:text-sm font-bold text-slate-800 truncate">${highlightText(sys.title, appState.searchQuery)}</h3>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="text-[11px] font-semibold text-slate-500">共 ${sys.items.length} 項</span>
+                  ${sysErr > 0 ? `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-700">異常 ${sysErr}</span>` : ''}
+                  ${sysWarn > 0 ? `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-700">待觀察 ${sysWarn}</span>` : ''}
+                  ${sysErr === 0 && sysWarn === 0 ? `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700">全數正常</span>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
+              <i class="ph-bold ${isExpanded ? 'ph-caret-up' : 'ph-caret-down'} text-base"></i>
+            </div>
+          </div>
+        `;
+
+        if (isExpanded) {
+          const listDiv = document.createElement('div');
+          listDiv.className = 'divide-y divide-slate-100 border-t border-slate-100';
+
+          filteredItems.forEach(item => {
+            const rec = appState.records[item.no] || { status: 'normal', note: '', action: '', drawerOpen: false };
+            const itemPhotos = appState.photos.filter(p => Number(p.itemNo) === item.no);
+            const hasNoteOrPhoto = Boolean((rec.note && rec.note.trim()) || (rec.action && rec.action.trim()) || itemPhotos.length > 0);
+
+            let rowBg = 'bg-white';
+            if (rec.status === 'abnormal') rowBg = 'bg-rose-50/70';
+            else if (rec.status === 'watch') rowBg = 'bg-amber-50/70';
+
+            const itemEl = document.createElement('div');
+            itemEl.id = `checklist-item-${item.no}`;
+            itemEl.className = `p-3.5 ${rowBg} transition-colors`;
+
+            itemEl.innerHTML = `
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="inline-flex items-center justify-center min-w-[24px] h-5 px-1.5 rounded-md bg-slate-800 text-white font-mono text-[11px] font-bold">
+                      ${String(item.no).padStart(2, '0')}
+                    </span>
+                    <h4 class="text-sm font-bold text-slate-900 leading-snug">${highlightText(item.name, appState.searchQuery)}</h4>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-1 pl-7 leading-relaxed">
+                    基準：${highlightText(item.standard, appState.searchQuery)}
+                  </p>
+                </div>
+
+                <!-- 備註與拍照抽屜按鈕 -->
+                <button type="button" onclick="toggleItemDrawer(${item.no})" class="btn-press shrink-0 py-1.5 px-2.5 rounded-xl border ${hasNoteOrPhoto ? 'bg-sky-50 border-sky-300 text-[#1E3A5F]' : 'bg-slate-50 border-slate-200 text-slate-500'} flex items-center gap-1 text-xs font-bold">
+                  <i class="ph-bold ph-camera text-base"></i>
+                  ${itemPhotos.length > 0 ? `<span>${itemPhotos.length}</span>` : ''}
+                </button>
+              </div>
+
+              <!-- 三段式狀態切換按鈕 (預設正常) -->
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" onclick="setItemStatus(${item.no}, 'normal')" class="btn-press py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition ${
+                  rec.status === 'normal'
+                    ? 'bg-[#16A34A] text-white border-[#16A34A] shadow-xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-emerald-50'
+                }">
+                  <i class="ph-bold ph-check-circle text-base"></i>
+                  <span>正常</span>
+                </button>
+
+                <button type="button" onclick="setItemStatus(${item.no}, 'abnormal')" class="btn-press py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition ${
+                  rec.status === 'abnormal'
+                    ? 'bg-[#DC2626] text-white border-[#DC2626] shadow-xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-rose-50'
+                }">
+                  <i class="ph-bold ph-x-circle text-base"></i>
+                  <span>異常</span>
+                </button>
+
+                <button type="button" onclick="setItemStatus(${item.no}, 'watch')" class="btn-press py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition ${
+                  rec.status === 'watch'
+                    ? 'bg-[#D97706] text-white border-[#D97706] shadow-xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-amber-50'
+                }">
+                  <i class="ph-bold ph-warning text-base"></i>
+                  <span>待觀察</span>
+                </button>
+              </div>
+
+              <!-- 單項備註、處理措施與拍照抽屜 -->
+              ${rec.drawerOpen ? `
+                <div class="mt-3 pt-3 border-t border-dashed ${rec.status === 'abnormal' ? 'border-rose-300' : 'border-slate-300'} space-y-2">
+                  <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                    <span class="text-[11px] font-semibold text-slate-500 shrink-0">快選：</span>
+                    ${QUICK_TAGS.map(tag => `
+                      <button type="button" onclick="appendQuickTag(${item.no}, '${tag}')" class="shrink-0 px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium border border-slate-200">
+                        ＋${tag}
+                      </button>
+                    `).join('')}
+                  </div>
+
+                  <input type="text" value="${(rec.note || '').replace(/"/g, '&quot;')}" oninput="updateItemField(${item.no}, 'note', this.value)" placeholder="異常現象 / 數值紀錄（例：壓力僅 50kg、接頭滲水）..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2C5282]" />
+
+                  <input type="text" value="${(rec.action || '').replace(/"/g, '&quot;')}" oninput="updateItemField(${item.no}, 'action', this.value)" placeholder="處理措施 / 更換料件（例：已鎖緊接頭、待排修更換高壓管）..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#2C5282]" />
+
+                  <div class="flex gap-2">
+                    <label class="btn-press flex-1 cursor-pointer py-2.5 px-3 rounded-xl bg-[#2C5282] hover:bg-[#1E3A5F] text-white text-xs font-bold flex items-center justify-center gap-1.5">
+                      <i class="ph-bold ph-camera text-base"></i>
+                      <span>直接相機拍照</span>
+                      <input type="file" accept="image/*" capture="environment" onchange="handleInlinePhotoUpload(event, ${item.no}, '${item.name}')" class="hidden" />
+                    </label>
+                    <button type="button" onclick="jumpToCameraForItem(${item.no})" class="btn-press py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#1E3A5F] border border-slate-300 text-xs font-bold flex items-center justify-center gap-1">
+                      <i class="ph-bold ph-images text-base"></i>
+                      <span>前往拍照頁</span>
+                    </button>
+                  </div>
+
+                  ${itemPhotos.length > 0 ? `
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                      ${itemPhotos.map(p => `
+                        <div class="relative bg-white rounded-xl border border-slate-200 overflow-hidden p-1.5">
+                          <img src="${p.dataUrl}" class="w-full h-20 object-cover rounded-lg" />
+                          <div class="text-[10px] font-mono text-slate-600 truncate mt-1">${p.filename}</div>
+                          <button type="button" onclick="deletePhotoById('${p.id}')" class="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center shadow">
+                            <i class="ph-bold ph-trash text-xs"></i>
+                          </button>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : ''}
+                </div>
+              ` : ''}
+            `;
+
+            listDiv.appendChild(itemEl);
+          });
+
+          card.appendChild(listDiv);
+        }
+
+        container.appendChild(card);
+      });
+
+      const searchBar = document.getElementById('search-status-bar');
+      if (query) {
+        searchBar.classList.remove('hidden');
+        document.getElementById('search-term-display').textContent = appState.searchQuery;
+        document.getElementById('search-match-count').textContent = totalMatchedItems;
+      } else {
+        searchBar.classList.add('hidden');
+      }
+
+      const emptyEl = document.getElementById('empty-filter-state');
+      if (totalMatchedItems === 0) emptyEl.classList.remove('hidden');
+      else emptyEl.classList.add('hidden');
+    }
+
+    // =========================================================================
+    // 6. 分頁二：現場拍照上傳與圖片壓縮處理
+    // =========================================================================
+    function populateCameraItemSelect(filterText = '', preselectNo = null) {
+      const select = document.getElementById('cam-target-item');
+      const currentVal = preselectNo !== null ? String(preselectNo) : select.value;
+      const q = filterText.trim().toLowerCase();
+
+      let optionsHtml = `<option value="0">00 - 門市外觀與洗車機總覽照片</option>`;
+
+      const issueItems = [];
+      const normalItems = [];
+
+      SYSTEMS_DATA.forEach(sys => {
+        sys.items.forEach(item => {
+          const st = appState.records[item.no]?.status || 'normal';
+          const noStr = String(item.no).padStart(2, '0');
+          const label = `${noStr} - ${item.name} (${sys.title.split('：')[1]})`;
+          if (q && !label.toLowerCase().includes(q)) return;
+
+          if (st === 'abnormal' || st === 'watch') {
+            issueItems.push({ no: item.no, label: `⚠️ [${st === 'abnormal' ? '異常' : '觀察'}] ${label}` });
+          } else {
+            normalItems.push({ no: item.no, label });
+          }
+        });
+      });
+
+      if (issueItems.length > 0) {
+        optionsHtml += `<optgroup label="異常 / 待觀察項目 (優先建議拍照)">`;
+        issueItems.forEach(it => {
+          optionsHtml += `<option value="${it.no}">${it.label}</option>`;
+        });
+        optionsHtml += `</optgroup>`;
+      }
+
+      optionsHtml += `<optgroup label="全部 89 項設備清單">`;
+      normalItems.forEach(it => {
+        optionsHtml += `<option value="${it.no}">${it.label}</option>`;
+      });
+      optionsHtml += `</optgroup>`;
+
+      select.innerHTML = optionsHtml;
+      if (currentVal && [...select.options].some(o => o.value === currentVal)) {
+        select.value = currentVal;
+      } else if (issueItems.length > 0 && preselectNo === null && !q) {
+        select.value = String(issueItems[0].no);
+      }
+    }
+
+    function filterCameraItemSelect(val) {
+      populateCameraItemSelect(val);
+    }
+
+    function jumpToCameraForItem(itemNo) {
+      switchTab('camera');
+      populateCameraItemSelect('', itemNo);
+    }
+
+    function compressImageFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const MAX_WIDTH = 1280;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+            const sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
+            resolve({ dataUrl, sizeKB });
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleSubpagePhotoCapture(event) {
+      const files = Array.from(event.target.files || []);
+      if (files.length === 0) return;
+
+      const targetItemNo = Number(document.getElementById('cam-target-item').value || 0);
+      const itemInfo = getItemInfoByNo(targetItemNo);
+      const caption = document.getElementById('cam-photo-caption').value.trim();
+
+      showToast(`正在處理並壓縮 ${files.length} 張照片...`, 'info');
+
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const { dataUrl, sizeKB } = await compressImageFile(files[i]);
+          const existingCount = appState.photos.filter(p => Number(p.itemNo) === targetItemNo).length;
+          const suffix = existingCount > 0 ? `_${existingCount + 1}` : '';
+          const filename = generatePhotoFilename(targetItemNo, itemInfo.name, suffix);
+
+          appState.photos.unshift({
+            id: 'photo_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+            itemNo: targetItemNo,
+            itemName: itemInfo.name,
+            caption,
+            filename,
+            dataUrl,
+            sizeKB,
+            timestamp: new Date().toLocaleTimeString('zh-TW', { hour12: false })
+          });
+
+          if (targetItemNo > 0 && appState.records[targetItemNo]) {
+            appState.records[targetItemNo].drawerOpen = true;
+          }
+        } catch (err) {
+          console.error('照片壓縮失敗:', err);
+        }
+      }
+
+      document.getElementById('cam-photo-caption').value = '';
+      event.target.value = '';
+      persistDraft();
+      updateStats();
+      renderCameraGallery();
+      showToast(`已成功新增 ${files.length} 張現場照片！`, 'ok');
+    }
+
+    async function handleInlinePhotoUpload(event, itemNo, itemName) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      showToast('正在壓縮現場照片...', 'info');
+      try {
+        const { dataUrl, sizeKB } = await compressImageFile(file);
+        const existingCount = appState.photos.filter(p => Number(p.itemNo) === itemNo).length;
+        const suffix = existingCount > 0 ? `_${existingCount + 1}` : '';
+        const filename = generatePhotoFilename(itemNo, itemName, suffix);
+
+        appState.photos.unshift({
+          id: 'photo_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          itemNo: Number(itemNo),
+          itemName,
+          caption: appState.records[itemNo]?.note || '',
+          filename,
+          dataUrl,
+          sizeKB,
+          timestamp: new Date().toLocaleTimeString('zh-TW', { hour12: false })
+        });
+
+        persistDraft();
+        updateStats();
+        renderSystems();
+        showToast(`照片已同步至「現場拍照上傳」分頁`, 'ok');
+      } catch (e) {
+        showToast('照片處理失敗，請重試', 'warn');
+      }
+      event.target.value = '';
+    }
+
+    function deletePhotoById(photoId) {
+      appState.photos = appState.photos.filter(p => p.id !== photoId);
+      persistDraft();
+      updateStats();
+      if (appState.activeTab === 'camera') renderCameraGallery();
+      else renderSystems();
+      showToast('已刪除該張照片', 'info');
+    }
+
+    function renderCameraGallery() {
+      const list = document.getElementById('camera-gallery-list');
+      document.getElementById('gallery-count').textContent = appState.photos.length;
+
+      if (appState.photos.length === 0) {
+        list.innerHTML = `
+          <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center">
+            <i class="ph-duotone ph-camera text-5xl text-slate-300 mb-2"></i>
+            <p class="text-xs font-bold text-slate-600">目前尚未拍攝任何現場照片</p>
+            <p class="text-[11px] text-slate-400 mt-1">點擊上方「開啟手機相機拍攝照片」即可即時拍照並自動命名歸檔</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = appState.photos.map(p => `
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex gap-3 p-3">
+          <img src="${p.dataUrl}" alt="${p.filename}" class="w-24 h-24 object-cover rounded-xl border border-slate-200 shrink-0 bg-slate-100" />
+          <div class="min-w-0 flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-1">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#1E3A5F] border border-blue-200 truncate">
+                  ${p.itemNo === 0 ? '00 門市總覽' : `#${String(p.itemNo).padStart(2, '0')} ${p.itemName}`}
+                </span>
+                <span class="text-[10px] text-slate-400 shrink-0">${p.sizeKB} KB</span>
+              </div>
+              <div class="text-[11px] font-mono text-slate-700 break-all mt-1.5 bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                ${p.filename}
+              </div>
+              ${p.caption ? `<p class="text-xs text-slate-600 mt-1 truncate">說明：${p.caption}</p>` : ''}
+            </div>
+
+            <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
+              ${p.itemNo > 0 ? `
+                <button type="button" onclick="jumpToChecklistItem(${p.itemNo})" class="text-[11px] font-bold text-[#2C5282] flex items-center gap-1">
+                  <i class="ph-bold ph-arrow-bend-up-left"></i> 跳至該點檢項
+                </button>
+              ` : '<span class="text-[10px] text-slate-400">一般總覽照片</span>'}
+
+              <button type="button" onclick="deletePhotoById('${p.id}')" class="text-[11px] font-bold text-rose-600 flex items-center gap-1 px-2 py-0.5 rounded hover:bg-rose-50">
+                <i class="ph-bold ph-trash"></i> 刪除
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function jumpToChecklistItem(itemNo) {
+      switchTab('checklist');
+      clearSearch();
+      setFilter('all');
+      for (const sys of SYSTEMS_DATA) {
+        if (sys.items.some(it => it.no === Number(itemNo))) {
+          appState.expandedSystems[sys.id] = true;
+          break;
+        }
+      }
+      renderSystems();
+      setTimeout(() => {
+        const el = document.getElementById(`checklist-item-${itemNo}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('ring-2', 'ring-[#2C5282]');
+          setTimeout(() => el.classList.remove('ring-2', 'ring-[#2C5282]'), 2000);
+        }
+      }, 100);
+    }
+
+    // =========================================================================
+    // 7. 真實雲端 POST 上傳 (分權資料庫)、修訂模式與歷史紀錄管理
+    // =========================================================================
+    function generateRecordId() {
+      const compactDate = (appState.meta.date || '2026-11-18').replace(/-/g, '');
+      const seq = String(submittedHistory.length + 1).padStart(3, '0');
+      return `XM-${compactDate}-${seq}`;
+    }
+
+    async function submitInspection() {
+      saveMeta();
+      if (!appState.meta.inspector.trim()) {
+        showToast('請先填寫「點檢技師姓名」再送出！', 'warn');
+        switchTab('checklist');
+        setTimeout(() => document.getElementById('inspector-name').focus(), 100);
+        return;
+      }
+
+      const submitBtn = document.getElementById('btn-submit-main');
+      const submitLabel = document.getElementById('btn-submit-label');
+      const submitIcon = document.getElementById('btn-submit-icon');
+      const origLabel = submitLabel.textContent;
+
+      submitBtn.disabled = true;
+      submitIcon.className = 'ph-bold ph-spinner-gap animate-spin text-lg text-sky-300';
+      submitLabel.textContent = '正在上傳至分權資料庫...';
+
+      const dealer = getActiveDealer();
+      const storeName = dealer.name;
+      const dealerCode = dealer.code;
+      const regionFull = dealer.region;
+      const regionShort = REGION_FOLDER_MAP[regionFull] || '南區';
+      const dateStr = appState.meta.date || '2026-11-18';
+      const compactDate = dateStr.replace(/-/g, '');
+      const inspector = appState.meta.inspector.trim();
+
+      let okCount = 0, errCount = 0, warnCount = 0;
+      for (let i = 1; i <= 89; i++) {
+        const st = appState.records[i]?.status || 'normal';
+        if (st === 'normal') okCount++;
+        else if (st === 'abnormal') errCount++;
+        else if (st === 'watch') warnCount++;
+      }
+
+      const healthRate = ((okCount / 89) * 100).toFixed(1) + '%';
+      const isRevision = Boolean(appState.editingRecordId);
+      const recordId = isRevision ? appState.editingRecordId : generateRecordId();
+      const version = isRevision ? (appState.revisionVersion + 1) : 1;
+      const nowTime = new Date().toLocaleString('zh-TW', { hour12: false });
+
+      // 更新照片標準檔名
+      const syncedPhotos = appState.photos.map((p, idx) => {
+        const itemInfo = getItemInfoByNo(p.itemNo);
+        const suffix = idx > 0 ? `_${idx + 1}` : '';
+        return {
+          ...p,
+          filename: generatePhotoFilename(p.itemNo, itemInfo.name, suffix)
+        };
+      });
+      appState.photos = syncedPhotos;
+
+      // 準備對齊 Google Apps Script doPost 的 JSON Payload
+      const itemsList = [];
+      const statusTextMap = { normal: '正常', abnormal: '異常', watch: '待觀察' };
+      SYSTEMS_DATA.forEach(sys => {
+        const catShort = sys.title.split('：')[1];
+        sys.items.forEach(item => {
+          const rec = appState.records[item.no] || { status: 'normal', note: '', action: '' };
+          itemsList.push({
+            id: item.no,
+            category: catShort,
+            name: item.name,
+            status: statusTextMap[rec.status] || '正常',
+            note: rec.note || '',
+            action: rec.action || ''
+          });
+        });
+      });
+
+      const gasPayload = {
+        recordId,
+        version,
+        region: regionFull,
+        regionShort,
+        storeCode: dealerCode,
+        storeName,
+        storeAddress: dealer.address,
+        date: dateStr,
+        compactDate,
+        inspector,
+        healthRate,
+        abnormalCount: errCount,
+        watchCount: warnCount,
+        items: itemsList,
+        photos: syncedPhotos.map(p => ({
+          itemId: p.itemNo,
+          itemName: p.itemName,
+          fileName: p.filename,
+          mimeType: 'image/jpeg',
+          base64Data: p.dataUrl
+        }))
+      };
+
+      let cloudSyncMode = 'simulated';
+      if (gasWebAppUrl && gasWebAppUrl.startsWith('https://script.google.com/')) {
+        try {
+          await fetch(gasWebAppUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(gasPayload)
+          });
+          cloudSyncMode = 'live';
+        } catch (err) {
+          console.error('Apps Script 上傳錯誤:', err);
+          cloudSyncMode = 'error_fallback';
+        }
+      } else {
+        await new Promise(r => setTimeout(r, 450));
+      }
+
+      const recordSnapshot = {
+        recordId,
+        version,
+        updatedAt: nowTime,
+        cloudSyncMode,
+        region: regionFull,
+        regionShort,
+        dealerCode,
+        storeName,
+        address: dealer.address,
+        date: dateStr,
+        inspector,
+        stats: {
+          ok: okCount,
+          abnormal: errCount,
+          watch: warnCount,
+          healthPct: ((okCount / 89) * 100).toFixed(1),
+          photoCount: syncedPhotos.length
+        },
+        stateSnapshot: JSON.parse(JSON.stringify({
+          meta: appState.meta,
+          records: appState.records,
+          photos: syncedPhotos
+        }))
+      };
+
+      const existingIdx = submittedHistory.findIndex(r => r.recordId === recordId);
+      if (existingIdx >= 0) {
+        submittedHistory[existingIdx] = recordSnapshot;
+      } else {
+        submittedHistory.unshift(recordSnapshot);
+      }
+
+      appState.editingRecordId = recordId;
+      appState.revisionVersion = version;
+
+      persistHistory();
+      persistDraft();
+
+      submitBtn.disabled = false;
+      submitIcon.className = 'ph-bold ph-cloud-arrow-up text-lg text-sky-300';
+      submitLabel.textContent = origLabel;
+
+      updateRevisionBannerUI();
+      openArchiveModal(recordSnapshot, isRevision);
+    }
+
+    function openArchiveModal(recordSnapshot, isRevision) {
+      const { recordId, version, updatedAt, cloudSyncMode, regionShort, dealerCode, storeName, address, date, stats, stateSnapshot } = recordSnapshot;
+      const compactDate = date.replace(/-/g, '');
+      const sheetFileName = `[點檢紀錄]_${compactDate}_${dealerCode}_${storeName}`;
+
+      document.getElementById('modal-title').textContent = isRevision
+        ? `修訂完成！已重新上傳 (v${version})`
+        : '已送出並歸檔至分權資料庫';
+      document.getElementById('modal-subtitle').textContent = `單號：${recordId} · 版本 v${version} (${updatedAt})`;
+
+      const editBtn = document.getElementById('modal-edit-btn');
+      editBtn.onclick = function() {
+        loadRecordForEditing(recordId);
+        closeArchiveModal();
+      };
+
+      const issueItems = [];
+      SYSTEMS_DATA.forEach(sys => {
+        sys.items.forEach(item => {
+          const rec = stateSnapshot.records[item.no];
+          if (rec && (rec.status === 'abnormal' || rec.status === 'watch')) {
+            const pCount = stateSnapshot.photos.filter(p => Number(p.itemNo) === item.no).length;
+            issueItems.push({
+              no: item.no,
+              name: item.name,
+              status: rec.status,
+              note: rec.note || '無文字備註',
+              action: rec.action || '',
+              pCount
+            });
+          }
+        });
+      });
+
+      const syncBannerHtml = cloudSyncMode === 'live'
+        ? `<div class="bg-emerald-600 text-white rounded-2xl p-4 shadow-md flex items-start gap-3">
+             <i class="ph-fill ph-cloud-check text-3xl text-emerald-200 shrink-0"></i>
+             <div>
+               <h4 class="text-sm font-bold">已即時傳送至 Google Drive「分權資料庫」！</h4>
+               <p class="text-xs text-emerald-100 mt-1 leading-relaxed">
+                 後端已自動建立 <strong>${regionShort} / ${storeName} / ${compactDate}</strong> 資料夾並寫入點檢試算表與 ${stats.photoCount} 張照片。
+               </p>
+             </div>
+           </div>`
+        : `<div class="bg-blue-700 text-white rounded-2xl p-4 shadow-md flex items-start gap-3">
+             <i class="ph-fill ph-device-mobile-camera text-3xl text-sky-200 shrink-0"></i>
+             <div>
+               <h4 class="text-sm font-bold">已儲存本地紀錄（離線模擬模式）</h4>
+               <p class="text-xs text-blue-100 mt-1 leading-relaxed">
+                 尚未填入 Apps Script 網址，目前以模擬模式展示「分權資料庫」歸檔結構。點擊右上角齒輪貼上網址即可直接上傳雲端。
+               </p>
+             </div>
+           </div>`;
+
+      const body = document.getElementById('archive-modal-body');
+      body.innerHTML = `
+        ${syncBannerHtml}
+
+        <!-- Google Drive 分權資料庫自動分區結構 -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+          <div class="text-xs font-bold text-[#1E3A5F] mb-2 flex items-center gap-1.5">
+            <i class="ph-fill ph-folder-notch-open text-amber-500 text-base"></i>
+            <span>分權資料庫自動分區建夾路徑</span>
+          </div>
+          <div class="bg-slate-900 text-slate-200 rounded-xl p-3 font-mono text-[11px] space-y-1.5 overflow-x-auto">
+            <div class="text-sky-300 font-bold">📁 分權資料庫 /</div>
+            <div class="pl-3 text-slate-300">└── 📁 ${regionShort} /</div>
+            <div class="pl-6 text-amber-300 font-bold">└── 📁 ${storeName} /</div>
+            <div class="pl-9 text-emerald-300 font-bold">└── 📁 ${compactDate} /</div>
+            <div class="pl-12 text-white">├── 📊 ${sheetFileName}</div>
+            ${stateSnapshot.photos.length === 0
+              ? `<div class="pl-12 text-slate-400">└── (本次無附加現場照片)</div>`
+              : stateSnapshot.photos.slice(0, 5).map(p => `
+                  <div class="pl-12 text-sky-200 truncate">├── 🖼️ ${p.filename}</div>
+                `).join('')
+            }
+          </div>
+        </div>
+
+        <!-- 檢修表彙整摘要 -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div>
+              <span class="text-xs font-bold text-[#1E3A5F] block">檢修表摘要 ([${dealerCode}] ${storeName})</span>
+              <span class="text-[10px] text-slate-500">${address}</span>
+            </div>
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#1E3A5F] shrink-0">v${version} 已存檔</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-center text-xs">
+            <div class="bg-emerald-50 p-2 rounded-xl border border-emerald-200">
+              <span class="text-[10px] text-emerald-700 block">正常項目</span>
+              <strong class="text-emerald-800 text-sm">${stats.ok} 項</strong>
+            </div>
+            <div class="bg-rose-50 p-2 rounded-xl border border-rose-200">
+              <span class="text-[10px] text-rose-700 block">異常 / 觀察</span>
+              <strong class="text-rose-800 text-sm">${stats.abnormal + stats.watch} 項</strong>
+            </div>
+            <div class="bg-sky-50 p-2 rounded-xl border border-sky-200">
+              <span class="text-[10px] text-sky-700 block">妥善率</span>
+              <strong class="text-[#1E3A5F] text-sm">${stats.healthPct}%</strong>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs font-bold text-slate-700 mb-1.5">本次異常與追蹤明細 (${issueItems.length} 項)</div>
+            ${issueItems.length === 0 ? `
+              <div class="text-center py-3 bg-emerald-50/70 rounded-xl border border-emerald-200 text-xs text-emerald-700 font-medium">
+                全機 89 項皆為正常運作狀態！
+              </div>
+            ` : `
+              <div class="space-y-2">
+                ${issueItems.map(it => `
+                  <div class="p-2.5 rounded-xl border ${it.status === 'abnormal' ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200'} text-xs">
+                    <div class="flex items-center justify-between">
+                      <span class="font-bold text-slate-900">#${String(it.no).padStart(2, '0')} ${it.name}</span>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${it.status === 'abnormal' ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'}">
+                        ${it.status === 'abnormal' ? '異常' : '待觀察'}
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-slate-600 mt-1">現象：${it.note} ${it.pCount > 0 ? `（已附 ${it.pCount} 張照片）` : ''}</div>
+                    ${it.action ? `<div class="text-[11px] text-slate-700 mt-0.5">處置：${it.action}</div>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+
+      const modal = document.getElementById('archive-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeArchiveModal() {
+      const modal = document.getElementById('archive-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function loadRecordForEditing(recordId) {
+      const target = submittedHistory.find(r => r.recordId === recordId);
+      if (!target) return;
+
+      const snap = JSON.parse(JSON.stringify(target.stateSnapshot));
+      appState.editingRecordId = target.recordId;
+      appState.revisionVersion = target.version;
+      appState.meta = snap.meta;
+      appState.records = { ...createDefaultNormalRecords(), ...snap.records };
+      appState.photos = snap.photos || [];
+
+      syncMetaToDOM();
+      updateRevisionBannerUI();
+      persistDraft();
+      updateStats();
+      renderSystems();
+      if (appState.activeTab === 'camera') {
+        populateCameraItemSelect();
+        renderCameraGallery();
+      }
+      showToast(`已載入單號 ${recordId}，請修改後再次送出上傳`, 'info');
+    }
+
+    function updateRevisionBannerUI() {
+      const banner = document.getElementById('revision-banner');
+      const submitLabel = document.getElementById('btn-submit-label');
+
+      if (appState.editingRecordId) {
+        banner.classList.remove('hidden');
+        document.getElementById('rev-banner-id').textContent = `${appState.editingRecordId} (目前 v${appState.revisionVersion})`;
+        submitLabel.textContent = `儲存修改並重新上傳 (v${appState.revisionVersion + 1})`;
+      } else {
+        banner.classList.add('hidden');
+        submitLabel.textContent = '送出並上傳分權資料庫';
+      }
+    }
+
+    function exitRevisionMode() {
+      appState.editingRecordId = null;
+      appState.revisionVersion = 1;
+      appState.records = createDefaultNormalRecords();
+      appState.photos = [];
+      clearSearch();
+      setFilter('all');
+      updateRevisionBannerUI();
+      persistDraft();
+      updateStats();
+      renderSystems();
+      showToast('已退出修訂模式並建立全新 89 項正常巡檢單', 'info');
+    }
+
+    function startNewInspectionAfterSubmit() {
+      closeArchiveModal();
+      exitRevisionMode();
+    }
+
+    // =========================================================================
+    // 8. 已送出歷史紀錄視窗控制
+    // =========================================================================
+    function updateHistoryBadge() {
+      const badge = document.getElementById('history-count-badge');
+      if (submittedHistory.length > 0) {
+        badge.classList.remove('hidden');
+        badge.textContent = submittedHistory.length;
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function openHistoryModal() {
+      const listBody = document.getElementById('history-list-body');
+      if (submittedHistory.length === 0) {
+        listBody.innerHTML = `
+          <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+            <i class="ph-duotone ph-folder-open text-5xl text-slate-300 mb-2"></i>
+            <p class="text-sm font-bold text-slate-700">尚無已送出的巡檢紀錄</p>
+            <p class="text-xs text-slate-400 mt-1">完成點檢並點擊「送出並上傳分權資料庫」後，紀錄會保存在這裡供隨時修改。</p>
+          </div>
+        `;
+      } else {
+        listBody.innerHTML = submittedHistory.map(rec => `
+          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-xs font-bold text-[#1E3A5F] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">${rec.recordId}</span>
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">v${rec.version}</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">${rec.regionShort || '南區'}</span>
+              </div>
+              <span class="text-[11px] text-slate-400">${rec.updatedAt}</span>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <div>
+                <strong class="text-slate-900 text-sm">[${rec.dealerCode || 'SK01'}] ${rec.storeName}</strong>
+                <span class="text-slate-500 ml-1">(技師：${rec.inspector})</span>
+              </div>
+              <span class="font-bold ${rec.stats.abnormal > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                妥善率 ${rec.stats.healthPct}%
+              </span>
+            </div>
+
+            <div class="flex items-center gap-2 text-[11px] text-slate-500">
+              <span>正常 ${rec.stats.ok}</span>·
+              <span class="text-rose-600 font-semibold">異常 ${rec.stats.abnormal}</span>·
+              <span class="text-amber-600 font-semibold">待觀察 ${rec.stats.watch}</span>·
+              <span>照片 ${rec.stats.photoCount} 張</span>
+            </div>
+
+            <button type="button" onclick="loadRecordForEditing('${rec.recordId}'); closeHistoryModal();" class="btn-press w-full py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold flex items-center justify-center gap-1.5">
+              <i class="ph-bold ph-pencil-simple-line text-base"></i>
+              <span>載入此筆資料進行修改</span>
+            </button>
+          </div>
+        `).join('');
+      }
+
+      const modal = document.getElementById('history-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeHistoryModal() {
+      const modal = document.getElementById('history-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function exportCSV() {
+      const dealer = getActiveDealer();
+      const storeName = dealer.name;
+      const dealerCode = dealer.code;
+      const dateStr = appState.meta.date || '2026-11-18';
+      const inspector = appState.meta.inspector.trim() || '未填寫';
+
+      let csv = '\uFEFF';
+      csv += `區域,${dealer.region},經銷編號,${dealerCode},門市名稱,${storeName},門市地址,"${dealer.address}",點檢日期,${dateStr},點檢技師,${inspector},版本,v${appState.revisionVersion}\n`;
+      csv += '項次,系統分類,設備項目,驗收基準,點檢結果,異常現象,處理措施,照片數量\n';
+
+      SYSTEMS_DATA.forEach(sys => {
+        const sysShort = sys.title.split('：')[1];
+        sys.items.forEach(item => {
+          const rec = appState.records[item.no] || { status: 'normal', note: '', action: '' };
+          const statusMap = { normal: '正常', abnormal: '異常', watch: '待觀察' };
+          const statusText = statusMap[rec.status] || '正常';
+          const noteText = (rec.note || '').replace(/"/g, '""');
+          const actionText = (rec.action || '').replace(/"/g, '""');
+          const pCount = appState.photos.filter(p => Number(p.itemNo) === item.no).length;
+          csv += `${item.no},"${sysShort}","${item.name}","${item.standard}","${statusText}","${noteText}","${actionText}",${pCount}\n`;
+        });
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `[點檢紀錄]_${dateStr.replace(/-/g, '')}_${dealerCode}_${storeName}_v${appState.revisionVersion}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('已下載 CSV 備份表檔案', 'ok');
+    }
+
+    // =========================================================================
+    // 9. 重設全部為正常 Modal 與 Toast 提示
+    // =========================================================================
+    function confirmResetAllNormal() {
+      const modal = document.getElementById('reset-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeResetModal() {
+      const modal = document.getElementById('reset-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function executeResetAllNormal() {
+      appState.editingRecordId = null;
+      appState.revisionVersion = 1;
+      appState.records = createDefaultNormalRecords();
+      appState.photos = [];
+      clearSearch();
+      setFilter('all');
+      updateRevisionBannerUI();
+      persistDraft();
+      updateStats();
+      renderSystems();
+      if (appState.activeTab === 'camera') renderCameraGallery();
+      closeResetModal();
+      showToast('已全部重設為「正常」(89/89)', 'ok');
+    }
+
+    let toastTimer = null;
+    function showToast(msg, type = 'info') {
+      const box = document.getElementById('toast-box');
+      const icon = document.getElementById('toast-icon');
+      const text = document.getElementById('toast-msg');
+
+      text.textContent = msg;
+      if (type === 'ok') icon.className = 'ph-fill ph-check-circle text-emerald-400 text-base';
+      else if (type === 'warn') icon.className = 'ph-fill ph-warning text-amber-400 text-base';
+      else icon.className = 'ph-fill ph-info text-sky-400 text-base';
+
+      box.classList.remove('opacity-0', '-translate-y-2');
+      box.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        box.classList.remove('opacity-100', 'translate-y-0');
+        box.classList.add('opacity-0', '-translate-y-2');
+      }, 2400);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAllData();
+      updateStats();
+      renderSystems();
+    });
+  </script>
+</body>
+</html>
