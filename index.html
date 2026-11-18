@@ -378,9 +378,20 @@
           </label>
         </div>
 
-        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-[11px] text-emerald-900 font-medium flex items-start gap-2">
-          <span class="text-sm leading-none">🛡️</span>
-          <span>拍照後會自動壓印門市與時間浮水印，並以純英數標準檔名（如 <b>XMOTO_20261118_SK01_01.jpg</b>）安全寫入手機 Download / 相簿記憶空間（不再出現亂碼或閃退）。</span>
+        <!-- 手機本機相簿資料夾授權與綁定控制列 -->
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                <span>📂 手機本機相簿自動備份資料夾</span>
+                <span id="device-dir-status" class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black">未綁定</span>
+              </div>
+              <p class="text-[11px] text-emerald-800 mt-0.5">點擊右側按鈕向手機請求資料夾讀寫權限（建議選 <b>Pictures</b> 或 <b>Download</b>），授權後每次拍照皆自動靜默存入副本。</p>
+            </div>
+            <button type="button" onclick="bindDeviceAlbumDirectory()" class="shrink-0 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold px-3 py-2 rounded-xl shadow-xs transition">
+              授權資料夾
+            </button>
+          </div>
         </div>
       </section>
 
@@ -1341,110 +1352,51 @@
     let currentFacingMode = 'environment';
     let torchEnabled = false;
     let currentViewingPhotoId = null;
+    let deviceAlbumDirHandle = null;
 
-    function updateCameraTargetPath() {
-      const shortReg = REGION_FOLDER_MAP[appState.meta.region] || '南區';
-      const dateCompact = (appState.meta.date || '').replace(/[^0-9]/g, '') || new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const pathStr = `經銷資料庫 / 分權資料庫 / ${shortReg} / ${appState.meta.dealerName} / ${dateCompact}`;
-      const el = document.getElementById('cam-target-path');
-      if (el) el.textContent = pathStr;
-    }
-
-    function renderCameraItemOptions() {
-      const sel = document.getElementById('camera-item-select');
-      if (!sel) return;
-      const prevVal = sel.value;
-
-      let optionsHtml = `<option value="">📍 一般現場巡檢全景（未綁定特定項次）</option>`;
-      const issueItems = [];
-      const normalItems = [];
-
-      SYSTEMS_DATA.forEach(sys => {
-        sys.items.forEach(item => {
-          const st = appState.records[item.id]?.status || '正常';
-          if (st === '異常' || st === '待觀察') issueItems.push({ ...item, status: st });
-          else normalItems.push({ ...item, status: st });
-        });
-      });
-
-      if (issueItems.length > 0) {
-        optionsHtml += `<optgroup label="⚠️ 異常 / 待觀察項目（優先拍攝）">`;
-        issueItems.forEach(it => {
-          optionsHtml += `<option value="${it.id}">[${it.status}] #${it.id} ${escapeHtml(it.name)}</option>`;
-        });
-        optionsHtml += `</optgroup>`;
+    async function bindDeviceAlbumDirectory() {
+      if (typeof window.showDirectoryPicker === 'function') {
+        try {
+          deviceAlbumDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+          const badge = document.getElementById('device-dir-status');
+          if (badge) {
+            badge.textContent = `已授權：${deviceAlbumDirHandle.name}`;
+            badge.className = 'text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded font-black';
+          }
+          showToast(`已取得「${deviceAlbumDirHandle.name}」讀寫權限，拍照將自動存入副本！`, 'success');
+          return true;
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            showToast('此 APK 環境不支援資料夾直連，請改用單張「存相簿」按鈕', 'info');
+          }
+          return false;
+        }
+      } else {
+        showToast('目前 WebView 不支援直接綁定資料夾，請確認 APK 打包已勾選 Storage 權限', 'info');
+        return false;
       }
-
-      optionsHtml += `<optgroup label="📋 全部 89 項設備清單">`;
-      normalItems.forEach(it => {
-        optionsHtml += `<option value="${it.id}">#${it.id} ${escapeHtml(it.name)}</option>`;
-      });
-      optionsHtml += `</optgroup>`;
-
-      sel.innerHTML = optionsHtml;
-      if (prevVal) sel.value = prevVal;
     }
-
-    function buildStandardPhotoFileName(itemId, itemName) {
-      const dateStr = (appState.meta.date || '').replace(/[^0-9]/g, '') || new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const code = (appState.meta.dealerCode || 'XM').replace(/[^A-Za-z0-9]/g, '');
-      const seq = String(appState.photos.length + 1).padStart(2, '0');
-      const itemPart = itemId ? `ITEM${String(itemId).padStart(2, '0')}` : `SCENE`;
-      return `XMOTO_${dateStr}_${code}_${itemPart}_${seq}.jpg`;
-    }
-
-    function dataUrlToBlob(dataUrl) {
-      const parts = dataUrl.split(',');
-      const mimeMatch = parts[0].match(/:(.*?);/);
-      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-      const byteString = atob(parts[1]);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      return new Blob([ab], { type: mime });
-    }
-
     async function savePhotoCopyToDeviceMemory(base64Data, asciiFileName, silentAuto = true) {
       try {
         const blob = dataUrlToBlob(base64Data);
         const file = new File([blob], asciiFileName, { type: 'image/jpeg' });
         const isAndroidWebView = /wv|Android.*Version\/[\d.]+/i.test(navigator.userAgent);
 
-        // 1. 優先使用 File System Access API 直接寫入手機儲存空間
-        if (window.showSaveFilePicker) {
+        // 1. 若已授權綁定手機本機資料夾（Pictures / Download），直接靜默寫入實體檔案（不跳窗、不閃退）
+        if (deviceAlbumDirHandle) {
           try {
-            const handle = await window.showSaveFilePicker({
-              suggestedName: asciiFileName,
-              types: [{ description: 'JPEG Image', accept: { 'image/jpeg': ['.jpg'] } }]
-            });
-            const writable = await handle.createWritable();
+            const fileHandle = await deviceAlbumDirHandle.getFileHandle(asciiFileName, { create: true });
+            const writable = await fileHandle.createWritable();
             await writable.write(blob);
             await writable.close();
-            showToast(`已寫入手機記憶體：${asciiFileName}`, 'success');
+            showToast(`已自動寫入手機資料夾：${asciiFileName}`, 'success');
             return true;
-          } catch (e) {
-            if (e.name === 'AbortError') return false;
+          } catch (dirErr) {
+            deviceAlbumDirHandle = null;
           }
         }
 
-        // 2. Android APK (WebView) 環境：拍照後自動喚起 Android 原生檔案介面，可直接點選「儲存至 Google 相簿 / 檔案」寫入手機記憶體，絕不閃退
-        if (isAndroidWebView && navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: asciiFileName
-            });
-            showToast(`已透過系統介面保存副本：${asciiFileName}`, 'success');
-            return true;
-          } catch (shareErr) {
-            // 若使用者按返回取消分享，不影響 App 內已存的照片
-            return false;
-          }
-        }
-
-        // 3. 手動點擊「存相簿」時也支援喚起原生分享存圖
+        // 2. 手動點擊「存相簿」時，優先呼叫 Android 原生檔案分享 / 存圖選單
         if (!silentAuto && navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             files: [file],
@@ -1453,7 +1405,7 @@
           return true;
         }
 
-        // 4. 一般手機瀏覽器 (Chrome / Safari)：使用安全 Blob URL 直接寫入 Download 與系統相簿
+        // 3. 一般手機瀏覽器（Chrome / Safari）：使用安全 Blob URL 直接寫入 Download 與系統相簿
         if (!isAndroidWebView) {
           const blobUrl = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -1470,30 +1422,6 @@
         return false;
       } catch (err) {
         return false;
-      }
-    }
-
-    function switchTab(tabName) {
-      appState.activeTab = tabName;
-      const isChecklist = tabName === 'checklist';
-
-      document.getElementById('view-checklist').classList.toggle('hidden', !isChecklist);
-      document.getElementById('view-camera').classList.toggle('hidden', isChecklist);
-      document.getElementById('checklist-stats-bar').classList.toggle('hidden', !isChecklist);
-      document.getElementById('search-bar-container').classList.toggle('hidden', !isChecklist);
-
-      const btnCheck = document.getElementById('tab-btn-checklist');
-      const btnCam = document.getElementById('tab-btn-camera');
-      if (isChecklist) {
-        btnCheck.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold bg-white text-[#1E3A5F] shadow transition';
-        btnCam.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold text-sky-100 hover:bg-white/10 transition';
-        document.getElementById('footer-switch-label').innerHTML = `📷 拍照 (<span id="footer-photo-count">${appState.photos.length}</span>)`;
-      } else {
-        btnCam.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold bg-white text-[#1E3A5F] shadow transition';
-        btnCheck.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold text-sky-100 hover:bg-white/10 transition';
-        document.getElementById('footer-switch-label').innerHTML = `📋 返回點檢表`;
-        renderCameraItemOptions();
-        renderCameraGallery();
       }
     }
 
@@ -2005,6 +1933,106 @@
       toastTimer = setTimeout(() => {
         box.classList.add('hidden');
       }, 2800);
+    }
+
+    function switchTab(tabName) {
+      appState.activeTab = tabName;
+      const isChecklist = tabName === 'checklist';
+
+      const viewChecklist = document.getElementById('view-checklist');
+      const viewCamera = document.getElementById('view-camera');
+      const statsBar = document.getElementById('checklist-stats-bar');
+      const searchBar = document.getElementById('search-bar-container');
+      const btnChecklist = document.getElementById('tab-btn-checklist');
+      const btnCamera = document.getElementById('tab-btn-camera');
+      const footerSwitchLabel = document.getElementById('footer-switch-label');
+
+      if (viewChecklist) viewChecklist.classList.toggle('hidden', !isChecklist);
+      if (viewCamera) viewCamera.classList.toggle('hidden', isChecklist);
+      if (statsBar) statsBar.classList.toggle('hidden', !isChecklist);
+      if (searchBar) searchBar.classList.toggle('hidden', !isChecklist);
+
+      if (btnChecklist && btnCamera) {
+        if (isChecklist) {
+          btnChecklist.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold bg-white text-[#1E3A5F] shadow transition';
+          btnCamera.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold text-sky-100 hover:bg-white/10 transition';
+        } else {
+          btnCamera.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold bg-white text-[#1E3A5F] shadow transition';
+          btnChecklist.className = 'flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-extrabold text-sky-100 hover:bg-white/10 transition';
+        }
+      }
+
+      if (footerSwitchLabel) {
+        footerSwitchLabel.innerHTML = isChecklist
+          ? `📷 拍照 (<span id="footer-photo-count">${appState.photos.length}</span>)`
+          : `📋 返回點檢表`;
+      }
+
+      if (!isChecklist) {
+        updateCameraTargetPath();
+        renderCameraItemOptions();
+        renderCameraGallery();
+      }
+    }
+
+    function updateCameraTargetPath() {
+      const el = document.getElementById('cam-target-path');
+      if (!el) return;
+      const shortReg = REGION_FOLDER_MAP[appState.meta.region] || '南區';
+      const dateCompact = (appState.meta.date || '').replace(/[^0-9]/g, '') || new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      el.textContent = `經銷資料庫/分權資料庫/${shortReg}/${appState.meta.dealerName || '未指定門市'}/${dateCompact}`;
+    }
+
+    function renderCameraItemOptions() {
+      const sel = document.getElementById('camera-item-select');
+      if (!sel) return;
+      const prevVal = sel.value;
+
+      const abnormalOptions = [];
+      const normalGroups = [];
+
+      SYSTEMS_DATA.forEach(sys => {
+        const groupOpts = [];
+        sys.items.forEach(item => {
+          const st = appState.records[item.id]?.status || '正常';
+          const optHtml = `<option value="${item.id}">#${item.id} ${escapeHtml(item.name)}${st !== '正常' ? ` [${st}]` : ''}</option>`;
+          if (st !== '正常') {
+            abnormalOptions.push(optHtml);
+          }
+          groupOpts.push(optHtml);
+        });
+        normalGroups.push(`<optgroup label="── ${escapeHtml(sys.name)} ──">${groupOpts.join('')}</optgroup>`);
+      });
+
+      let html = `<option value="">📍 一般巡檢全景（不指定單一項次）</option>`;
+      if (abnormalOptions.length > 0) {
+        html += `<optgroup label="⚠️ 異常 / 待觀察項目（優先拍攝）">${abnormalOptions.join('')}</optgroup>`;
+      }
+      html += normalGroups.join('');
+
+      sel.innerHTML = html;
+      if (prevVal) sel.value = prevVal;
+    }
+
+    function buildStandardPhotoFileName(itemId, itemName) {
+      const dateCompact = (appState.meta.date || '').replace(/[^0-9]/g, '') || new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const code = (appState.meta.dealerCode || 'XMOTO').replace(/[^A-Za-z0-9_-]/g, '');
+      const itemTag = itemId ? `ITEM${String(itemId).padStart(2, '0')}` : 'GENERAL';
+      const seq = String(appState.photos.length + 1).padStart(2, '0');
+      return `XMOTO_${dateCompact}_${code}_${itemTag}_${seq}.jpg`;
+    }
+
+    function dataUrlToBlob(dataUrl) {
+      const parts = dataUrl.split(',');
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const byteString = atob(parts[1]);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      return new Blob([ab], { type: mime });
     }
 
     // ==================== 8. 應用程式啟動初始化 ====================
