@@ -208,7 +208,7 @@
 
         <!-- 四區域切換按鈕 -->
         <div>
-          <label class="block text-[11px] font-bold text-slate-500 mb-1.5">1. 選擇所屬區域（全台 53 家經銷）</label>
+          <label class="block text-[11px] font-bold text-slate-500 mb-1.5">1. 選擇所屬區域（全台 54 家經銷）</label>
           <div class="grid grid-cols-4 gap-1.5" id="region-tabs">
             <button type="button" data-region="北部地區" onclick="selectRegion('北部地區')" class="region-tab py-2 px-1 rounded-xl text-xs font-extrabold border text-center transition">
               北部 (27)
@@ -217,7 +217,7 @@
               中部 (9)
             </button>
             <button type="button" data-region="南部地區" onclick="selectRegion('南部地區')" class="region-tab py-2 px-1 rounded-xl text-xs font-extrabold border text-center transition">
-              南部 (16)
+              南部 (17)
             </button>
             <button type="button" data-region="東部地區" onclick="selectRegion('東部地區')" class="region-tab py-2 px-1 rounded-xl text-xs font-extrabold border text-center transition">
               東部 (1)
@@ -552,7 +552,7 @@
   <div id="toast-box" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white text-xs font-extrabold px-4 py-2.5 rounded-full shadow-xl border border-white/15 transition-opacity"></div>
 
   <script>
-    // ==================== 1. 全台 53 家經銷門市資料庫（北/中/南/東四區域） ====================
+    // ==================== 1. 全台 54 家經銷門市資料庫（北/中/南/東四區域） ====================
     const DEALERS_DATA = [
       // 北部地區 (27)
       { region: '北部地區', code: 'NK01', city: '基隆市', name: '基隆中正店', address: '基隆市中正區中正路 728 號' },
@@ -593,8 +593,7 @@
       { region: '中部地區', code: 'CC01', city: '彰化縣', name: '彰化中正店', address: '彰化縣彰化市中正路二段 133 號' },
       { region: '中部地區', code: 'CC02', city: '彰化縣', name: '彰化彰美店', address: '彰化縣彰化市彰美路一段 281 號' },
       { region: '中部地區', code: 'CC03', city: '彰化縣', name: '彰化員林店', address: '彰化縣員林市員林大道六段 199 號' },
-
-      // 南部地區 (16)
+      // 南部地區 (17)
       { region: '南部地區', code: 'SN01', city: '台南市', name: '台南公園店', address: '台南市北區公園路 409 號' },
       { region: '南部地區', code: 'SN02', city: '台南市', name: '東區大同店', address: '台南市東區大同路二段 649 號' },
       { region: '南部地區', code: 'SN03', city: '台南市', name: '新市仁愛店', address: '台南市新市區仁愛街 156-1 號' },
@@ -608,6 +607,7 @@
       { region: '南部地區', code: 'SK08', city: '高雄市', name: '高雄大社店', address: '高雄市大社區中正路 74-3 號' },
       { region: '南部地區', code: 'SK09', city: '高雄市', name: '鳳山中正店（月半機車澡堂）', address: '高雄市鳳山區中正路 182 之 3 號' },
       { region: '南部地區', code: 'SK10', city: '高雄市', name: '高雄大寮鳳屏店', address: '高雄市大寮區鳳屏一路 475 號' },
+      { region: '南部地區', code: 'SK11', city: '高雄市', name: '高雄小港店', address: '高雄市小港區康莊路 198 號' },
       { region: '南部地區', code: 'SP01', city: '屏東縣', name: '屏東民生店', address: '屏東縣屏東市民生路 49-18 號' },
       { region: '南部地區', code: 'SP02', city: '屏東縣', name: '屏東潮州店', address: '屏東縣潮州鎮延平路 272 號' },
       { region: '南部地區', code: 'SP03', city: '屏東縣', name: '屏東恆春店', address: '屏東縣恆春鎮中正路 35 號' },
